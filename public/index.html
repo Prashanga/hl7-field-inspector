@@ -1,0 +1,2816 @@
+<!DOCTYPE html>
+<!--
+Based in part on HL7 Message Analyzer by Joe Bartlett.
+MIT License
+Copyright (c) 2024 Joe Bartlett
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HL7 Field Inspector</title>
+<meta name="description" content="Offline HL7 v2 message inspector. Expand any segment down to the subcomponent. Nothing leaves the page.">
+<style>
+:root {
+  --page: #fafbfd;
+  --panel: #ffffff;
+  --panel-2: #f4f6f8;
+  --rule: #d5dde5;
+  --rule-soft: #e9eef3;
+  --text: #1f2f3d;
+  --muted: #526678;
+  --dim: #7f919f;
+  --accent: #5c768c;
+  --accent-soft: #eef3f6;
+  --warn: #7f6231;
+  --warn-bg: #fff8e8;
+  --bad: #8f4c58;
+  --bad-bg: #fff0f2;
+  --good: #4d7c66;
+  --good-bg: #edf7f1;
+
+  --seg-MSH: #4f72a7;
+  --seg-PID: #a05a6a;
+  --seg-PV1: #4a72a8;
+  --seg-PV2: #4a72a8;
+  --seg-OBR: #8a6b33;
+  --seg-OBX: #2f796d;
+  --seg-ORC: #3b7990;
+  --seg-NTE: #61784e;
+  --seg-EVN: #6e739c;
+  --seg-MSA: #91616d;
+  --seg-ERR: #91616d;
+  --seg-AL1: #97684a;
+  --seg-DG1: #6173a0;
+  --seg-IN1: #617585;
+  --seg-GT1: #617585;
+  --seg-SPM: #4e7a59;
+  --seg-default: #5f7382;
+
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --addr-w: 128px;
+  --name-w: 250px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+button, input, textarea { font: inherit; }
+
+.wrap {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 22px 200px;
+}
+
+.eyebrow {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 26px 0 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.masthead h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+}
+
+.masthead h1 .slash { color: var(--accent); }
+.masthead .sub { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+.offline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: #4f7764;
+  border: 1px solid #cfe2d7;
+  background: var(--good-bg);
+  padding: 6px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.offline-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
+
+.input-block { padding: 20px 0 0; }
+.input-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+
+textarea#raw {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 14px 15px;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  tab-size: 4;
+  box-shadow: 0 1px 2px rgba(35, 55, 70, 0.03);
+}
+textarea#raw::placeholder, input#search::placeholder { color: #a1adb6; }
+textarea#raw:focus, .btn:focus-visible, input:focus-visible, .chip:focus-visible, .row:focus-visible {
+  outline: 2px solid #b9c6d0;
+  outline-offset: 1px;
+}
+
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.btn {
+  font-size: 13px;
+  font-weight: 650;
+  background: var(--panel);
+  color: #526575;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.btn:hover { background: var(--panel-2); border-color: #c7d0d8; color: var(--text); }
+.btn-primary { background: #f3f6f8; border-color: #cfd8df; color: #425765; }
+.btn-primary:hover { background: #eaf0f4; border-color: #bcc8d2; }
+.btn:disabled { opacity: 0.48; cursor: not-allowed; }
+
+.notices { margin-top: 14px; display: grid; gap: 7px; }
+.notice { font-size: 13px; padding: 9px 11px; border-radius: 7px; border: 1px solid var(--rule); background: var(--panel); color: var(--text); }
+.notice.err { border-color: #edcbd1; color: #8d4f59; background: var(--bad-bg); }
+.notice.info { border-color: #eadcb6; color: #80652f; background: var(--warn-bg); }
+
+.meta {
+  margin-top: 20px;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  background: var(--panel);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  overflow: hidden;
+}
+.meta-cell { padding: 10px 13px; border-right: 1px solid var(--rule-soft); border-bottom: 1px solid var(--rule-soft); min-width: 0; }
+.meta-cell .k { display: block; font-size: 10.5px; font-weight: 650; color: var(--muted); margin-bottom: 2px; }
+.meta-cell .v { font-family: var(--mono); font-size: 13.5px; overflow-wrap: anywhere; }
+.meta-cell .v .faint { color: var(--muted); }
+
+.toolbar {
+  margin-top: 20px;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.search-wrap { position: relative; flex: 1 1 280px; min-width: 210px; }
+input#search {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  color: var(--text);
+  font-size: 13.5px;
+  padding: 9px 11px;
+}
+.count-tag { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); cursor: pointer; user-select: none; padding: 5px 0; }
+.toggle input { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+.toggle:hover { color: var(--text); }
+
+.chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 12px 0 4px; }
+.chip {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: #fbfcfd;
+  border: 1px solid #cbd6df;
+  color: #536574;
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.chip:hover { background: #f5f7f9; color: #324658; border-color: #c3cdd6; }
+.chip[aria-pressed="true"] { background: var(--chip-color, var(--seg-default)); color: white; font-weight: 700; border-color: transparent; }
+.chip .n { opacity: 0.82; margin-left: 4px; }
+
+.tree { margin-top: 10px; }
+.row {
+  display: grid;
+  grid-template-columns: 18px var(--addr-w) var(--name-w) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 7px 8px 7px 0;
+  border-radius: 6px;
+  cursor: default;
+  position: relative;
+}
+.row:hover { background: #f7f9fb; }
+.row.sel { background: #eef2f5; }
+.row.seg-row { margin-top: 14px; padding: 10px 10px 10px 0; border-top: none; align-items: center; background: #fbfcfd; border-radius: 8px; box-shadow: inset 4px 0 0 var(--seg-color, var(--accent)), inset 0 0 0 1px #e7edf2; }
+.row.seg-row:first-child { margin-top: 6px; border-top: none; }
+.row.seg-row .name, .row.seg-row .val { line-height: 1.45; }
+.row .indent { grid-column: 1; display: flex; justify-content: flex-end; align-items: center; align-self: stretch; }
+
+.twisty { font-family: var(--mono); font-size: 10px; color: var(--muted); background: none; border: none; padding: 2px 3px; cursor: pointer; line-height: 1; transition: transform 130ms ease; }
+.twisty:hover { color: var(--text); }
+.twisty[aria-expanded="true"] { transform: rotate(90deg); color: var(--seg-color, var(--accent)); }
+.twisty.leaf { visibility: hidden; cursor: default; }
+
+.addr {
+  grid-column: 2;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: #5c6d7a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 3px solid #c8d2dc;
+  padding-left: 9px;
+  font-weight: 500;
+}
+.row.seg-row .addr { color: var(--seg-color, var(--accent)); border-left-color: transparent; font-weight: 700; font-size: 13.5px; }
+.row.depth-2 .addr { padding-left: 20px; }
+.row.depth-3 .addr { padding-left: 33px; opacity: 1; }
+.row.depth-4 .addr { padding-left: 46px; opacity: 1; }
+
+.name { grid-column: 3; font-size: 13.5px; color: #3c4f5e; overflow-wrap: anywhere; }
+.row.seg-row .name { color: #182735; font-weight: 670; }
+.valcol { grid-column: 4; min-width: 0; }
+.val { font-family: var(--mono); font-size: 13.5px; color: #203240; overflow-wrap: anywhere; white-space: pre-wrap; }
+.val.empty { color: var(--dim); font-style: italic; font-family: var(--sans); font-size: 13px; }
+.row.seg-row .val { color: #445a6a; font-size: 12.5px; }
+
+.dtype { font-family: var(--mono); font-size: 10px; color: #667680; background: #f6f8fa; border: 1px solid #d7e0e8; border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
+.note { display: block; font-size: 12.5px; color: #657786; margin-top: 3px; }
+.note .arrow { color: var(--accent); }
+.np { display: inline-block; font-family: var(--mono); font-size: 10.5px; background: var(--warn-bg); color: #8a6b31; border: 1px solid #ead8a9; border-radius: 4px; padding: 0 3px; margin: 0 1px; vertical-align: 1px; }
+mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2px; }
+
+.rowtools { position: absolute; right: 6px; top: 2px; display: none; gap: 4px; }
+.row:hover .rowtools, .row.sel .rowtools { display: flex; }
+.rowtools button { font-size: 11px; background: var(--panel); border: 1px solid var(--rule); color: var(--muted); border-radius: 5px; padding: 2px 6px; cursor: pointer; }
+.rowtools button:hover { color: var(--text); background: var(--panel-2); }
+
+.empty-state { padding: 54px 20px; text-align: center; color: var(--muted); }
+.empty-state .big { font-size: 15px; font-weight: 650; color: var(--text); margin-bottom: 6px; }
+
+.inspector {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.98);
+  border-top: 1px solid var(--rule);
+  padding: 12px 20px 14px;
+  display: none;
+  z-index: 10;
+  box-shadow: 0 -8px 26px rgba(41, 60, 72, 0.10);
+}
+.inspector.on { display: block; }
+.inspector-inner { max-width: 1360px; margin: 0 auto; }
+.insp-top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.insp-path { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--seg-color, var(--accent)); }
+.insp-name { font-size: 14px; color: var(--text); }
+.insp-close { margin-left: auto; background: var(--panel); border: 1px solid var(--rule); color: var(--muted); font-size: 12px; border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+.insp-close:hover { color: var(--text); background: #f5f7f9; }
+.insp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 20px; }
+.insp-field .k { font-size: 10.5px; font-weight: 650; color: var(--muted); display: block; margin-bottom: 3px; }
+.insp-field .v { font-family: var(--mono); font-size: 13.5px; overflow-wrap: anywhere; max-height: 84px; overflow-y: auto; white-space: pre-wrap; }
+.hexdump { color: var(--muted); font-size: 12.5px; letter-spacing: 0.02em; }
+.hexdump .b { color: var(--text); }
+
+.foot { margin-top: 42px; padding-top: 14px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 12.5px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.foot code { font-family: var(--mono); background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; color: var(--text); }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%) translateY(20px); bottom: 24px; background: #324755; border: 1px solid #324755; color: white; font-size: 13px; padding: 8px 14px; border-radius: 7px; opacity: 0; pointer-events: none; transition: opacity 180ms ease, transform 180ms ease; z-index: 40; }
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 860px) {
+  :root { --addr-w: 108px; --name-w: 150px; }
+  .row { grid-template-columns: 16px var(--addr-w) minmax(0, 1fr); }
+  .name { grid-column: 2 / -1; grid-row: 2; padding-left: 9px; font-size: 12.5px; }
+  .valcol { grid-column: 2 / -1; grid-row: 3; padding-left: 9px; }
+  .row.seg-row .name { grid-row: 2; }
+  .rowtools { position: static; grid-column: 2 / -1; grid-row: 4; padding-left: 9px; margin-top: 3px; }
+  .wrap { padding: 0 14px 240px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+
+/* ---------- mode tabs / enhanced tools ---------- */
+.mode-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 18px;
+  padding: 4px;
+  width: fit-content;
+  background: #f1f4f6;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+}
+.mode-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #5b6d7b;
+  padding: 7px 15px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 680;
+  cursor: pointer;
+}
+.mode-tab:hover { color: var(--text); }
+.mode-tab[aria-selected="true"] {
+  background: #fff;
+  color: #223544;
+  box-shadow: 0 1px 2px rgba(32, 48, 60, 0.08);
+}
+.mode-pane { display: none; }
+.mode-pane.on { display: block; }
+
+.message-nav {
+  margin-top: 14px;
+  padding: 10px 11px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+.message-nav-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: #455a6a;
+  font-size: 12.5px;
+  font-weight: 650;
+}
+.message-nav-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.message-choice {
+  border: 1px solid #ccd6de;
+  background: #fff;
+  color: #506474;
+  border-radius: 6px;
+  padding: 5px 9px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--mono);
+}
+.message-choice:hover { background: #f5f7f9; color: #263b4b; }
+.message-choice[aria-pressed="true"] {
+  background: #465e70;
+  border-color: #465e70;
+  color: #fff;
+}
+
+.notice.warn { border-color: #e6d5a9; color: #715c2e; background: #fffbef; }
+.notice .notice-path { font-family: var(--mono); font-weight: 700; margin-right: 6px; }
+
+.summary-wrap { display: grid; gap: 12px; padding: 6px 0 20px; }
+.summary-card {
+  background: #fff;
+  border: 1px solid #dbe2e8;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.summary-title {
+  padding: 9px 12px;
+  background: #f8fafb;
+  border-bottom: 1px solid #e5eaee;
+  font-weight: 700;
+  color: #263947;
+  font-size: 13px;
+}
+.summary-row {
+  display: grid;
+  grid-template-columns: 120px 250px minmax(0, 1fr);
+  gap: 12px;
+  padding: 7px 12px;
+  border-top: 1px solid #f0f2f4;
+  align-items: start;
+}
+.summary-row:first-of-type { border-top: 0; }
+.summary-path { font-family: var(--mono); font-size: 12.5px; color: #526575; }
+.summary-name { color: #435767; font-size: 13px; }
+.summary-value { font-family: var(--mono); font-size: 13px; color: #1f303d; overflow-wrap: anywhere; white-space: pre-wrap; }
+.summary-empty { color: #8996a0; font-style: italic; font-family: var(--sans); }
+.summary-result-line {
+  display: grid;
+  grid-template-columns: 110px minmax(180px, 0.9fr) minmax(220px, 1.5fr) 130px 70px;
+  gap: 10px;
+  padding: 7px 12px;
+  border-top: 1px solid #f0f2f4;
+  align-items: start;
+  font-size: 12.5px;
+}
+.summary-result-line .mono { font-family: var(--mono); overflow-wrap: anywhere; }
+.summary-result-head { background: #fbfcfd; color: #657684; font-weight: 650; font-size: 11.5px; }
+
+.compare-pane { padding-top: 20px; }
+.compare-intro { margin-bottom: 14px; }
+.compare-intro h2 { margin: 0 0 4px; font-size: 19px; color: #233643; }
+.compare-intro p { margin: 0; color: var(--muted); font-size: 13px; max-width: 850px; }
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.compare-card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 11px;
+}
+.compare-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.compare-card-title { font-weight: 700; color: #2d414f; }
+.compare-mini-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.mini-btn {
+  background: #fff;
+  border: 1px solid #d2dbe2;
+  color: #586b79;
+  border-radius: 5px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 11.5px;
+}
+.mini-btn:hover { background: #f5f7f9; color: #293e4d; }
+.compare-card textarea {
+  width: 100%; min-height: 210px; resize: vertical;
+  border: 1px solid #d4dde4; border-radius: 6px;
+  padding: 10px; background: #fcfdfe; color: #20313e;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+}
+.compare-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+.compare-summary {
+  display: none;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  border: 1px solid var(--rule); border-radius: 8px; background: #fff; overflow: hidden; margin-bottom: 12px;
+}
+.compare-summary.on { display: grid; }
+.compare-stat { padding: 9px 11px; border-right: 1px solid #edf0f2; }
+.compare-stat .k { display: block; font-size: 10.5px; color: #71808b; text-transform: uppercase; letter-spacing: .04em; }
+.compare-stat .v { display: block; margin-top: 2px; font-family: var(--mono); font-size: 14px; color: #263946; font-weight: 700; }
+.compare-results { display: grid; gap: 10px; padding-bottom: 30px; }
+.diff-segment { background: #fff; border: 1px solid #dce3e8; border-radius: 8px; overflow: hidden; }
+.diff-seg-head {
+  display: grid; grid-template-columns: 150px minmax(0,1fr); gap: 10px;
+  padding: 8px 11px; background: #f8fafb; border-bottom: 1px solid #e5eaee;
+}
+.diff-seg-name { font-family: var(--mono); font-weight: 750; color: #2d4352; }
+.diff-seg-key { color: #6a7a86; font-size: 12px; overflow-wrap: anywhere; }
+.diff-row {
+  display: grid;
+  grid-template-columns: 145px 220px minmax(0,1fr) minmax(0,1fr) 76px;
+  gap: 10px; padding: 7px 11px; border-top: 1px solid #f0f2f4; align-items: start;
+}
+.diff-row:first-child { border-top: 0; }
+.diff-path { font-family: var(--mono); font-size: 12px; color: #536676; overflow-wrap: anywhere; }
+.diff-name { font-size: 12.5px; color: #415665; }
+.diff-value { font-family: var(--mono); font-size: 12.5px; color: #20313e; overflow-wrap: anywhere; white-space: pre-wrap; }
+.diff-value.empty { color: #8c98a1; font-family: var(--sans); font-style: italic; }
+.diff-status { font-size: 10.5px; font-weight: 750; text-transform: uppercase; letter-spacing: .03em; }
+.diff-row.changed { background: #fffdf5; }
+.diff-row.added { background: #f6fbf8; }
+.diff-row.removed { background: #fff8f8; }
+.diff-status.changed { color: #80692d; }
+.diff-status.added { color: #4f765f; }
+.diff-status.removed { color: #8d5960; }
+.diff-status.same { color: #82909a; }
+.diff-components { border-top: 1px dashed #e3e8ec; background: #fcfdfe; }
+.diff-components summary { cursor: pointer; padding: 6px 11px 6px 155px; color: #617481; font-size: 11.5px; }
+.diff-component-row {
+  display: grid; grid-template-columns: 145px 220px minmax(0,1fr) minmax(0,1fr) 76px;
+  gap: 10px; padding: 5px 11px 5px 24px; border-top: 1px solid #f2f4f6; align-items: start;
+}
+.diff-empty { padding: 34px 20px; text-align: center; color: #687986; background: #fff; border: 1px solid var(--rule); border-radius: 8px; }
+
+.file-drag-active { outline: 2px dashed #8fa4b3 !important; outline-offset: -6px; background: #fbfcfd; }
+.hidden-input { display: none; }
+
+
+/* ---------- embedded PDF attachments ---------- */
+.attachments {
+  margin-top: 14px;
+  display: none;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  background: #fff;
+  overflow: hidden;
+}
+.attachments.on { display: block; }
+.attachments-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 13px;
+  background: #fbfcfd;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.attachments-title { font-weight: 680; color: #263846; }
+.attachments-hint { font-size: 12px; color: var(--muted); }
+.attachment-list { display: grid; gap: 0; }
+.attachment-item {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 11px 13px;
+  border-top: 1px solid var(--rule-soft);
+}
+.attachment-item:first-child { border-top: 0; }
+.attachment-name { font-weight: 650; color: #273b49; }
+.attachment-meta { margin-top: 2px; font-family: var(--mono); font-size: 11.5px; color: #667887; overflow-wrap: anywhere; }
+.pdf-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 7px;
+  padding: 1px 5px;
+  border: 1px solid #d8c8c8;
+  border-radius: 4px;
+  background: #fff7f7;
+  color: #845454;
+  font-family: var(--sans);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  vertical-align: 1px;
+}
+
+.pdf-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(25, 35, 44, 0.46);
+  z-index: 100;
+}
+.pdf-modal.on { display: flex; }
+.pdf-dialog {
+  width: min(1180px, 96vw);
+  height: min(900px, 92vh);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #cbd4dc;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 18px 55px rgba(23, 34, 43, .22);
+}
+.pdf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px 10px 14px;
+  border-bottom: 1px solid var(--rule);
+  background: #fbfcfd;
+}
+.pdf-head-copy { min-width: 0; }
+.pdf-title { display: block; font-weight: 700; color: #203340; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pdf-meta { display: block; margin-top: 2px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pdf-actions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+.pdf-frame { width: 100%; flex: 1 1 auto; min-height: 0; border: 0; background: #eef1f3; }
+.pdf-fallback { display: none; padding: 28px; color: var(--muted); text-align: center; }
+.insp-pdf-action .btn { margin-top: 2px; }
+
+@media (max-width: 720px) {
+  .attachment-item { grid-template-columns: 1fr; }
+  .pdf-modal { padding: 8px; }
+  .pdf-dialog { width: 100%; height: 96vh; }
+  .pdf-head { align-items: flex-start; flex-direction: column; }
+  .pdf-actions { justify-content: flex-start; }
+}
+
+@media (max-width: 980px) {
+  .compare-grid { grid-template-columns: 1fr; }
+  .diff-row, .diff-component-row { grid-template-columns: 110px 170px minmax(0,1fr) minmax(0,1fr) 68px; }
+  .summary-row { grid-template-columns: 100px 180px minmax(0,1fr); }
+  .summary-result-line { grid-template-columns: 90px 1fr 1.3fr 100px 60px; }
+}
+@media (max-width: 720px) {
+  .diff-row, .diff-component-row { grid-template-columns: 1fr; gap: 3px; }
+  .diff-components summary { padding-left: 11px; }
+  .summary-row { grid-template-columns: 1fr; gap: 2px; }
+  .summary-result-line { grid-template-columns: 1fr; gap: 2px; }
+}
+
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <h1>HL7 Field Inspector</h1>
+      <p class="sub">Paste an HL7 v2 message and inspect segments, fields, repetitions, components and subcomponents.</p>
+    </div>
+    <span class="offline-badge"><span class="dot"></span>Local only · no uploads</span>
+  </header>
+
+  <div class="mode-tabs" role="tablist" aria-label="HL7 tool mode">
+    <button class="mode-tab" id="inspectTab" type="button" role="tab" aria-selected="true" aria-controls="inspectPane">Inspector</button>
+    <button class="mode-tab" id="compareTab" type="button" role="tab" aria-selected="false" aria-controls="comparePane">Compare</button>
+  </div>
+
+  <section class="mode-pane on" id="inspectPane" role="tabpanel" aria-labelledby="inspectTab">
+    <section class="input-block">
+      <div class="input-head">
+        <span class="eyebrow">Raw message</span>
+        <span class="eyebrow">Ctrl/Cmd + Enter · or drop a .hl7/.txt file</span>
+      </div>
+      <textarea id="raw" spellcheck="false" placeholder="Paste a raw HL7 v2 message here. Segments may be separated by CR, LF, or CRLF — if the line breaks were stripped in transit, they'll be recovered automatically."></textarea>
+      <div class="actions">
+        <button class="btn btn-primary" id="parseBtn" type="button">Parse message</button>
+        <button class="btn" id="openFileBtn" type="button">Open HL7 file</button>
+        <input class="hidden-input" id="openFileInput" type="file" accept=".hl7,.txt,.log,text/plain">
+        <button class="btn" id="sampleBtn" type="button">Load sample</button>
+        <button class="btn" id="clearBtn" type="button">Clear</button>
+        <button class="btn" id="copyJson" type="button" disabled>Copy as JSON</button>
+        <button class="btn" id="exportJson" type="button" disabled>Save JSON</button>
+      </div>
+      <div class="notices" id="notices"></div>
+      <section class="message-nav" id="messageNav" style="display:none"></section>
+    </section>
+
+    <section class="meta" id="meta" style="display:none"></section>
+
+    <section class="attachments" id="attachments" aria-label="Embedded PDF attachments"></section>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <input id="search" type="search" spellcheck="false" placeholder="Filter by path, field name, or value — try PID-5, OBR-24, or Hemoglobin">
+      </div>
+      <span class="count-tag" id="countTag"></span>
+      <label class="toggle"><input type="checkbox" id="hideEmpty" checked>Hide empty fields</label>
+      <label class="toggle"><input type="checkbox" id="decodeEsc">Decode escapes</label>
+      <button class="btn" id="expandAll" type="button">Expand all</button>
+      <button class="btn" id="collapseAll" type="button">Collapse all</button>
+    </div>
+
+    <div class="chips" id="chips"></div>
+
+    <main class="tree" id="tree" role="tree" aria-label="Parsed HL7 message"></main>
+
+    <footer class="foot">
+      <span>Click any row to inspect it. Arrow keys navigate the tree; <code>&larr;</code> <code>&rarr;</code> collapse and expand.</span>
+      <span>Single local HTML file. Structural inspector with practical version-aware labels and syntax warnings; not a substitute for an interface-specific conformance profile.</span>
+    </footer>
+  </section>
+
+  <section class="mode-pane compare-pane" id="comparePane" role="tabpanel" aria-labelledby="compareTab">
+    <div class="compare-intro">
+      <h2>Compare two HL7 messages</h2>
+      <p>This is deliberately separate from the normal Inspector. Paste a known-good message and a changed message to see field-level differences; unchanged fields are hidden by default.</p>
+    </div>
+
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="compare-card-head">
+          <span class="compare-card-title">Message A</span>
+          <div class="compare-mini-actions">
+            <button class="mini-btn" id="useInspectorA" type="button">Use Inspector</button>
+            <button class="mini-btn" id="fileABtn" type="button">Open file</button>
+            <input class="hidden-input" id="fileAInput" type="file" accept=".hl7,.txt,.log,text/plain">
+          </div>
+        </div>
+        <textarea id="compareA" spellcheck="false" placeholder="Paste the baseline / known-good HL7 message"></textarea>
+      </div>
+      <div class="compare-card">
+        <div class="compare-card-head">
+          <span class="compare-card-title">Message B</span>
+          <div class="compare-mini-actions">
+            <button class="mini-btn" id="useInspectorB" type="button">Use Inspector</button>
+            <button class="mini-btn" id="fileBBtn" type="button">Open file</button>
+            <input class="hidden-input" id="fileBInput" type="file" accept=".hl7,.txt,.log,text/plain">
+          </div>
+        </div>
+        <textarea id="compareB" spellcheck="false" placeholder="Paste the changed / failing HL7 message"></textarea>
+      </div>
+    </div>
+
+    <div class="compare-actions">
+      <button class="btn btn-primary" id="compareBtn" type="button">Compare messages</button>
+      <button class="btn" id="swapCompare" type="button">Swap A / B</button>
+      <label class="toggle"><input type="checkbox" id="hideUnchanged" checked>Hide unchanged fields</label>
+    </div>
+    <div class="notices" id="compareNotices"></div>
+    <section class="compare-summary" id="compareSummary"></section>
+    <div class="compare-results" id="compareResults"></div>
+  </section>
+
+</div>
+
+<div class="inspector" id="inspector" aria-live="polite">
+  <div class="inspector-inner">
+    <div class="insp-top">
+      <span class="insp-path" id="inspPath"></span>
+      <span class="insp-name" id="inspName"></span>
+      <button class="insp-close" id="inspClose" type="button">Close</button>
+    </div>
+    <div class="insp-grid">
+      <div class="insp-field">
+        <span class="k">Raw value</span>
+        <div class="v" id="inspRaw"></div>
+      </div>
+      <div class="insp-field" id="inspDecodedWrap" style="display:none">
+        <span class="k">With escapes decoded</span>
+        <div class="v" id="inspDecoded"></div>
+      </div>
+      <div class="insp-field">
+        <span class="k">Interpretation</span>
+        <div class="v" id="inspNote"></div>
+      </div>
+      <div class="insp-field">
+        <span class="k">Hex</span>
+        <div class="v hexdump" id="inspHex"></div>
+      </div>
+      <div class="insp-field insp-pdf-action" id="inspPdfWrap" style="display:none">
+        <span class="k">Embedded PDF</span>
+        <button class="btn" id="inspPdfBtn" type="button">View PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pdf-modal" id="pdfModal" role="dialog" aria-modal="true" aria-labelledby="pdfTitle">
+  <div class="pdf-dialog">
+    <div class="pdf-head">
+      <div class="pdf-head-copy">
+        <span class="pdf-title" id="pdfTitle">Embedded PDF</span>
+        <span class="pdf-meta" id="pdfMeta"></span>
+      </div>
+      <div class="pdf-actions">
+        <button class="btn" id="pdfOpenNew" type="button">Open in new tab</button>
+        <button class="btn" id="pdfSave" type="button">Save PDF</button>
+        <button class="btn" id="pdfClose" type="button">Close</button>
+      </div>
+    </div>
+    <iframe class="pdf-frame" id="pdfFrame" title="Embedded HL7 PDF preview" referrerpolicy="no-referrer"></iframe>
+    <div class="pdf-fallback" id="pdfFallback">This browser could not display the PDF inline. Use “Open in new tab” or “Save PDF”.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ============================================================
+   HL7 v2.x parser core + data dictionary
+   No network, no eval, no DOM. Pure string -> tree.
+   ============================================================ */
+(function (root) {
+  'use strict';
+
+  /* ---------- Data dictionary: segment -> field -> [name, datatype] ---------- */
+  var SEG = {
+    MSH: { n: 'Message Header', f: {
+      1:['Field Separator','ST'], 2:['Encoding Characters','ST'], 3:['Sending Application','HD'],
+      4:['Sending Facility','HD'], 5:['Receiving Application','HD'], 6:['Receiving Facility','HD'],
+      7:['Date/Time of Message','TS'], 8:['Security','ST'], 9:['Message Type','MSG'],
+      10:['Message Control ID','ST'], 11:['Processing ID','PT'], 12:['Version ID','VID'],
+      13:['Sequence Number','NM'], 14:['Continuation Pointer','ST'], 15:['Accept Ack Type','ID'],
+      16:['Application Ack Type','ID'], 17:['Country Code','ID'], 18:['Character Set','ID'],
+      19:['Principal Language of Message','CE'], 20:['Alternate Character Set Handling','ID'],
+      21:['Message Profile Identifier','EI'] } },
+    MSA: { n: 'Message Acknowledgment', f: {
+      1:['Acknowledgment Code','ID'], 2:['Message Control ID','ST'], 3:['Text Message','ST'],
+      4:['Expected Sequence Number','NM'], 5:['Delayed Ack Type','ID'], 6:['Error Condition','CE'] } },
+    ERR: { n: 'Error', f: {
+      1:['Error Code and Location','ELD'], 2:['Error Location','ERL'], 3:['HL7 Error Code','CWE'],
+      4:['Severity','ID'], 5:['Application Error Code','CWE'], 8:['User Message','TX'] } },
+    EVN: { n: 'Event Type', f: {
+      1:['Event Type Code','ID'], 2:['Recorded Date/Time','TS'], 3:['Date/Time Planned Event','TS'],
+      4:['Event Reason Code','IS'], 5:['Operator ID','XCN'], 6:['Event Occurred','TS'],
+      7:['Event Facility','HD'] } },
+    PID: { n: 'Patient Identification', f: {
+      1:['Set ID','SI'], 2:['Patient ID','CX'], 3:['Patient Identifier List','CX'],
+      4:['Alternate Patient ID','CX'], 5:['Patient Name','XPN'], 6:["Mother's Maiden Name",'XPN'],
+      7:['Date/Time of Birth','TS'], 8:['Administrative Sex','IS'], 9:['Patient Alias','XPN'],
+      10:['Race','CE'], 11:['Patient Address','XAD'], 12:['County Code','IS'],
+      13:['Phone Number - Home','XTN'], 14:['Phone Number - Business','XTN'],
+      15:['Primary Language','CE'], 16:['Marital Status','CE'], 17:['Religion','CE'],
+      18:['Patient Account Number','CX'], 19:['SSN Number','ST'], 20:["Driver's License Number",'DLN'],
+      21:["Mother's Identifier",'CX'], 22:['Ethnic Group','CE'], 23:['Birth Place','ST'],
+      24:['Multiple Birth Indicator','ID'], 25:['Birth Order','NM'], 26:['Citizenship','CE'],
+      27:['Veterans Military Status','CE'], 28:['Nationality','CE'],
+      29:['Patient Death Date/Time','TS'], 30:['Patient Death Indicator','ID'] } },
+    PD1: { n: 'Patient Additional Demographic', f: {
+      3:['Patient Primary Facility','XON'], 4:['Patient Primary Care Provider','XCN'],
+      11:['Publicity Code','CE'], 12:['Protection Indicator','ID'] } },
+    MRG: { n: 'Merge Patient Information', f: {
+      1:['Prior Patient Identifier List','CX'], 3:['Prior Patient Account Number','CX'],
+      4:['Prior Patient ID','CX'], 7:['Prior Patient Name','XPN'] } },
+    NK1: { n: 'Next of Kin', f: {
+      1:['Set ID','SI'], 2:['Name','XPN'], 3:['Relationship','CE'], 4:['Address','XAD'],
+      5:['Phone Number','XTN'] } },
+    PV1: { n: 'Patient Visit', f: {
+      1:['Set ID','SI'], 2:['Patient Class','IS'], 3:['Assigned Patient Location','PL'],
+      4:['Admission Type','IS'], 5:['Preadmit Number','CX'], 6:['Prior Patient Location','PL'],
+      7:['Attending Doctor','XCN'], 8:['Referring Doctor','XCN'], 9:['Consulting Doctor','XCN'],
+      10:['Hospital Service','IS'], 11:['Temporary Location','PL'],
+      12:['Preadmit Test Indicator','IS'], 13:['Re-admission Indicator','IS'],
+      14:['Admit Source','IS'], 15:['Ambulatory Status','IS'], 16:['VIP Indicator','IS'],
+      17:['Admitting Doctor','XCN'], 18:['Patient Type','IS'], 19:['Visit Number','CX'],
+      20:['Financial Class','FC'], 36:['Discharge Disposition','IS'],
+      39:['Servicing Facility','IS'], 44:['Admit Date/Time','TS'], 45:['Discharge Date/Time','TS'],
+      46:['Current Patient Balance','NM'], 47:['Total Charges','NM'],
+      50:['Alternate Visit ID','CX'], 51:['Visit Indicator','IS'] } },
+    PV2: { n: 'Patient Visit - Additional', f: {
+      3:['Admit Reason','CE'], 8:['Expected Admit Date/Time','TS'],
+      9:['Expected Discharge Date/Time','TS'] } },
+    AL1: { n: 'Patient Allergy Information', f: {
+      1:['Set ID','SI'], 2:['Allergen Type Code','CE'], 3:['Allergen Code/Mnemonic/Description','CE'],
+      4:['Allergy Severity Code','CE'], 5:['Allergy Reaction Code','ST'],
+      6:['Identification Date','DT'] } },
+    DG1: { n: 'Diagnosis', f: {
+      1:['Set ID','SI'], 2:['Diagnosis Coding Method','ID'], 3:['Diagnosis Code','CE'],
+      4:['Diagnosis Description','ST'], 5:['Diagnosis Date/Time','TS'], 6:['Diagnosis Type','IS'],
+      15:['Diagnosis Priority','NM'], 16:['Diagnosing Clinician','XCN'],
+      19:['Attestation Date/Time','TS'] } },
+    PR1: { n: 'Procedures', f: {
+      1:['Set ID','SI'], 3:['Procedure Code','CE'], 5:['Procedure Date/Time','TS'],
+      6:['Procedure Functional Type','IS'] } },
+    GT1: { n: 'Guarantor', f: {
+      1:['Set ID','SI'], 2:['Guarantor Number','CX'], 3:['Guarantor Name','XPN'],
+      5:['Guarantor Address','XAD'], 6:['Guarantor Phone - Home','XTN'],
+      11:['Guarantor Relationship','CE'] } },
+    IN1: { n: 'Insurance', f: {
+      1:['Set ID','SI'], 2:['Insurance Plan ID','CE'], 3:['Insurance Company ID','CX'],
+      4:['Insurance Company Name','XON'], 5:['Insurance Company Address','XAD'],
+      6:['Insurance Co Contact Person','XPN'], 7:['Insurance Co Phone Number','XTN'],
+      8:['Group Number','ST'], 15:['Plan Type','IS'], 16:['Name of Insured','XPN'],
+      17:["Insured's Relationship to Patient",'CE'], 18:["Insured's Date of Birth",'TS'],
+      19:["Insured's Address",'XAD'], 36:['Policy Number','ST'] } },
+    ORC: { n: 'Common Order', f: {
+      1:['Order Control','ID'], 2:['Placer Order Number','EI'], 3:['Filler Order Number','EI'],
+      4:['Placer Group Number','EI'], 5:['Order Status','ID'], 6:['Response Flag','ID'],
+      7:['Quantity/Timing','TQ'], 8:['Parent','EIP'], 9:['Date/Time of Transaction','TS'],
+      10:['Entered By','XCN'], 11:['Verified By','XCN'], 12:['Ordering Provider','XCN'],
+      13:["Enterer's Location",'PL'], 14:['Call Back Phone Number','XTN'],
+      15:['Order Effective Date/Time','TS'], 16:['Order Control Code Reason','CE'],
+      17:['Entering Organization','CE'], 18:['Entering Device','CE'], 19:['Action By','XCN'] } },
+    OBR: { n: 'Observation Request', f: {
+      1:['Set ID','SI'], 2:['Placer Order Number','EI'], 3:['Filler Order Number','EI'],
+      4:['Universal Service Identifier','CE'], 5:['Priority','ID'],
+      6:['Requested Date/Time','TS'], 7:['Observation Date/Time','TS'],
+      8:['Observation End Date/Time','TS'], 9:['Collection Volume','CQ'],
+      10:['Collector Identifier','XCN'], 11:['Specimen Action Code','ID'],
+      12:['Danger Code','CE'], 13:['Relevant Clinical Information','ST'],
+      14:['Specimen Received Date/Time','TS'], 15:['Specimen Source','SPS'],
+      16:['Ordering Provider','XCN'], 17:['Order Callback Phone Number','XTN'],
+      18:['Placer Field 1','ST'], 19:['Placer Field 2','ST'], 20:['Filler Field 1','ST'],
+      21:['Filler Field 2','ST'], 22:['Results Report/Status Change Date/Time','TS'],
+      23:['Charge to Practice','MOC'], 24:['Diagnostic Service Section ID','ID'],
+      25:['Result Status','ID'], 26:['Parent Result','PRL'], 27:['Quantity/Timing','TQ'],
+      28:['Result Copies To','XCN'], 29:['Parent','EIP'], 30:['Transportation Mode','ID'],
+      31:['Reason for Study','CE'], 32:['Principal Result Interpreter','NDL'] } },
+    OBX: { n: 'Observation/Result', f: {
+      1:['Set ID','SI'], 2:['Value Type','ID'], 3:['Observation Identifier','CE'],
+      4:['Observation Sub-ID','ST'], 5:['Observation Value','*'], 6:['Units','CE'],
+      7:['References Range','ST'], 8:['Abnormal Flags','IS'], 9:['Probability','NM'],
+      10:['Nature of Abnormal Test','ID'], 11:['Observation Result Status','ID'],
+      12:['Effective Date of Reference Range','TS'], 13:['User Defined Access Checks','ST'],
+      14:['Date/Time of the Observation','TS'], 15:["Producer's ID",'CE'],
+      16:['Responsible Observer','XCN'], 17:['Observation Method','CE'],
+      18:['Equipment Instance Identifier','EI'], 19:['Date/Time of the Analysis','TS'] } },
+    NTE: { n: 'Notes and Comments', f: {
+      1:['Set ID','SI'], 2:['Source of Comment','ID'], 3:['Comment','FT'],
+      4:['Comment Type','CE'] } },
+    SPM: { n: 'Specimen', f: {
+      1:['Set ID','SI'], 2:['Specimen ID','EIP'], 4:['Specimen Type','CWE'],
+      17:['Specimen Collection Date/Time','DR'], 18:['Specimen Received Date/Time','TS'] } },
+    RXA: { n: 'Pharmacy Administration', f: {
+      1:['Give Sub-ID Counter','NM'], 2:['Administration Sub-ID Counter','NM'],
+      3:['Date/Time Start of Administration','TS'], 4:['Date/Time End of Administration','TS'],
+      5:['Administered Code','CE'], 6:['Administered Amount','NM'],
+      7:['Administered Units','CE'], 9:['Administration Notes','CE'] } },
+    RXE: { n: 'Pharmacy Encoded Order', f: {
+      2:['Give Code','CE'], 3:['Give Amount - Minimum','NM'], 5:['Give Units','CE'] } },
+    SFT: { n: 'Software Segment', f: {
+      1:['Software Vendor Organization','XON'], 2:['Software Certified Version','ST'],
+      3:['Software Product Name','ST'], 4:['Software Binary ID','ST'],
+      6:['Software Install Date','TS'] } },
+    QRD: { n: 'Query Definition', f: {
+      1:['Query Date/Time','TS'], 2:['Query Format Code','ID'], 3:['Query Priority','ID'],
+      4:['Query ID','ST'], 8:['Who Subject Filter','XCN'] } },
+    ZZZ: { n: 'Custom Z-Segment', f: {} }
+  };
+
+  /* ---------- Composite datatype component names ---------- */
+  var DT = {
+    XPN: ['Family Name','Given Name','Second/Further Given Names','Suffix','Prefix','Degree','Name Type Code','Name Representation Code'],
+    XCN: ['ID Number','Family Name','Given Name','Second/Further Given Names','Suffix','Prefix','Degree','Source Table','Assigning Authority','Name Type Code','Identifier Check Digit','Check Digit Scheme','Identifier Type Code','Assigning Facility'],
+    CX:  ['ID Number','Check Digit','Check Digit Scheme','Assigning Authority','Identifier Type Code','Assigning Facility','Effective Date','Expiration Date'],
+    XAD: ['Street Address','Other Designation','City','State or Province','Zip or Postal Code','Country','Address Type','Other Geographic Designation','County/Parish Code','Census Tract'],
+    XTN: ['Telephone Number','Telecommunication Use Code','Telecommunication Equipment Type','Email Address','Country Code','Area/City Code','Local Number','Extension','Any Text'],
+    XON: ['Organization Name','Organization Name Type Code','ID Number','Check Digit','Check Digit Scheme','Assigning Authority','Identifier Type Code','Assigning Facility','Name Representation Code','Organization Identifier'],
+    HD:  ['Namespace ID','Universal ID','Universal ID Type'],
+    MSG: ['Message Code','Trigger Event','Message Structure'],
+    VID: ['Version ID','Internationalization Code','International Version ID'],
+    PT:  ['Processing ID','Processing Mode'],
+    CE:  ['Identifier','Text','Name of Coding System','Alternate Identifier','Alternate Text','Name of Alternate Coding System'],
+    CWE: ['Identifier','Text','Name of Coding System','Alternate Identifier','Alternate Text','Name of Alternate Coding System','Coding System Version ID','Alternate Coding System Version ID','Original Text'],
+    PL:  ['Point of Care','Room','Bed','Facility','Location Status','Person Location Type','Building','Floor','Location Description'],
+    EI:  ['Entity Identifier','Namespace ID','Universal ID','Universal ID Type'],
+    EIP: ['Placer Assigned Identifier','Filler Assigned Identifier'],
+    CQ:  ['Quantity','Units'],
+    DLN: ['License Number','Issuing State/Province/Country','Expiration Date'],
+    TS:  ['Time','Degree of Precision'],
+    NDL: ['Name','Start Date/Time','End Date/Time','Point of Care','Room','Bed','Facility'],
+    SPS: ['Specimen Source Name or Code','Additives','Specimen Collection Method','Body Site','Site Modifier','Collection Method Modifier Code'],
+    TQ:  ['Quantity','Interval','Duration','Start Date/Time','End Date/Time','Priority','Condition','Text','Conjunction'],
+    DR:  ['Range Start Date/Time','Range End Date/Time'],
+    ELD: ['Segment ID','Segment Sequence','Field Position','Code Identifying Error'],
+    ERL: ['Segment ID','Segment Sequence','Field Position','Field Repetition','Component Number','Sub-Component Number'],
+    FC:  ['Financial Class Code','Effective Date'],
+    PRL: ['Parent Observation Identifier','Parent Observation Sub-identifier','Parent Observation Value Descriptor'],
+    MOC: ['Monetary Amount','Charge Code']
+  };
+
+  // Common structured result datatypes used by OBX-5.
+  // CM is a legacy context-dependent composite. Component names are supplied only for
+  // fields where this inspector knows the structure (for example MSH-9 in the v2.3 family).
+  DT.SN = ['Comparator','Num1','Separator / Suffix','Num2'];
+  DT.ED = ['Source Application','Type of Data','Data Subtype','Encoding','Data'];
+  DT.RP = ['Pointer','Application ID','Type of Data','Subtype'];
+  DT.MO = ['Quantity','Denomination'];
+  DT.CP = ['Price','Price Type','From Value','To Value','Range Units','Range Type'];
+  DT.CNE = DT.CWE.slice();
+  DT.CF = DT.CE.slice();
+
+  // Names for common subcomponents nested inside composite components.
+  var SUBDT = {
+    FN: ['Surname','Own Surname Prefix','Own Surname','Surname Prefix From Partner','Surname From Partner'],
+    SAD: ['Street or Mailing Address','Street Name','Dwelling Number']
+  };
+  var DT_COMPONENT_TYPES = {
+    XPN: { 1:'FN' },
+    XCN: { 2:'FN' },
+    XAD: { 1:'SAD' }
+  };
+
+  // These are used to decide whether OBX-5 can be interpreted structurally.
+  var OBX_VALUE_TYPES = {
+    AD:1, CE:1, CF:1, CK:1, CM:1, CN:1, CP:1, CX:1, DT:1, DTM:1, ED:1,
+    FT:1, ID:1, IS:1, MA:1, MO:1, NM:1, PN:1, RP:1, SN:1, ST:1, TM:1,
+    TN:1, TS:1, TX:1, XAD:1, XCN:1, XON:1, XPN:1, XTN:1, CWE:1, CNE:1
+  };
+
+  // The embedded dictionary is intentionally practical rather than a full conformance database.
+  // These profiles allow a few known version-sensitive labels/datatypes to be interpreted correctly
+  // and make the declared MSH-12 version visible to the user.
+  var VERSION_PROFILES = {
+    '2.3':   { key:'2.3',   label:'HL7 v2.3' },
+    '2.3.1': { key:'2.3.1', label:'HL7 v2.3.1' },
+    '2.4':   { key:'2.4',   label:'HL7 v2.4' },
+    '2.5':   { key:'2.5',   label:'HL7 v2.5' },
+    '2.5.1': { key:'2.5.1', label:'HL7 v2.5.1' }
+  };
+
+  function versionProfile(version) {
+    var v = String(version || '').trim();
+    return VERSION_PROFILES[v] || { key:'common', label:'Common HL7 v2.x', declared:v };
+  }
+
+  function fieldDefinition(def, segName, fieldNum, version) {
+    var meta = (def && def.f && def.f[fieldNum]) || null;
+    if (!meta) return null;
+    var out = [meta[0], meta[1]];
+    // In the older v2.3 family MSH-9 is described as the legacy CM composite.
+    // Its component meaning is the same three-part message code / trigger / structure tuple.
+    if (segName === 'MSH' && fieldNum === 9 && /^2\.3(?:\.1)?$/.test(version || '')) out[1] = 'CM';
+    // Older v2.3-era terminology commonly labels PID-8 simply as "Sex".
+    if (segName === 'PID' && fieldNum === 8 && /^2\.3(?:\.1)?$/.test(version || '')) out[0] = 'Sex';
+    return out;
+  }
+
+
+  /* ---------- Small code tables for high-traffic coded fields ---------- */
+  var CODES = {
+    'MSH-11.1': { P:'Production', D:'Debugging', T:'Training' },
+    'MSH-15':   { AL:'Always', NE:'Never', ER:'Error/reject only', SU:'Successful only' },
+    'MSH-16':   { AL:'Always', NE:'Never', ER:'Error/reject only', SU:'Successful only' },
+    'MSA-1':    { AA:'Application Accept', AE:'Application Error', AR:'Application Reject',
+                  CA:'Commit Accept', CE:'Commit Error', CR:'Commit Reject' },
+    'ERR-4':    { I:'Information', W:'Warning', E:'Error', F:'Fatal error' },
+    'PID-8':    { M:'Male', F:'Female', O:'Other', U:'Unknown', A:'Ambiguous', N:'Not applicable' },
+    'PID-24':   { Y:'Yes - multiple birth', N:'No' },
+    'PID-30':   { Y:'Yes - deceased', N:'No' },
+    'PV1-2':    { E:'Emergency', I:'Inpatient', O:'Outpatient', P:'Preadmit',
+                  R:'Recurring patient', B:'Obstetrics', C:'Commercial account',
+                  N:'Not applicable', U:'Unknown' },
+    'PV1-16':   { Y:'VIP', N:'Not VIP' },
+    'OBX-2':    { ST:'String', NM:'Numeric', TX:'Text', FT:'Formatted text', CE:'Coded entry',
+                  CWE:'Coded with exceptions', DT:'Date', TM:'Time', TS:'Timestamp',
+                  SN:'Structured numeric', ED:'Encapsulated data', RP:'Reference pointer' },
+    'OBX-8':    { L:'Below low normal', H:'Above high normal', LL:'Critically low',
+                  HH:'Critically high', N:'Normal', A:'Abnormal', AA:'Critically abnormal',
+                  '<':'Below absolute low', '>':'Above absolute high', U:'Significant rise',
+                  D:'Significant fall', S:'Susceptible', R:'Resistant' },
+    'OBX-11':   { C:'Corrected', D:'Deleted', F:'Final', I:'Specimen in lab, results pending',
+                  P:'Preliminary', R:'Entered, not verified', S:'Partial', U:'Post-final update',
+                  W:'Wrong record', X:'Cannot be obtained' },
+    'OBR-25':   { O:'Order received', I:'In lab, awaiting specimen', S:'Scheduled',
+                  A:'Some results available', P:'Preliminary', C:'Corrected', R:'Results stored',
+                  F:'Final', X:'Cannot be done', Y:'No order on record', Z:'No record of patient' },
+    'ORC-1':    { NW:'New order', OK:'Order accepted', CA:'Cancel order', DC:'Discontinue order',
+                  HD:'Hold order', RP:'Order replace request', RO:'Replacement order',
+                  SC:'Status changed', XO:'Change order request', UA:'Unable to accept order' },
+    'ORC-5':    { A:'Some results available', CA:'Cancelled', CM:'Completed', DC:'Discontinued',
+                  ER:'Error', HD:'On hold', IP:'In process', RP:'Replaced', SC:'Scheduled' },
+    'EVN-1':    { A01:'Admit/visit notification', A02:'Transfer a patient',
+                  A03:'Discharge/end visit', A04:'Register a patient',
+                  A05:'Pre-admit a patient', A08:'Update patient information',
+                  A11:'Cancel admit', A13:'Cancel discharge', A28:'Add person information',
+                  A31:'Update person information', A40:'Merge patient - patient identifier list' },
+    'NTE-2':    { L:'Ancillary (filler) department', P:'Orderer (placer)', O:'Other system' }
+  };
+
+  var DEFAULT_DELIMS = { field: '|', comp: '^', rep: '~', esc: '\\', sub: '&' };
+
+  /* ---------- helpers ---------- */
+
+  function stripWrappers(raw) {
+    // MLLP framing is <VT>message<FS><CR>. Only remove framing bytes at
+    // the message boundaries so control characters inside field data stay visible.
+    var text = String(raw);
+    // UTF-8 text files may decode with a BOM before MSH/MLLP framing.
+    if (text.charAt(0) === '\uFEFF') text = text.slice(1);
+    if (text.charAt(0) === '\x0b') text = text.slice(1);
+    if (/\x1c\r?$/.test(text)) text = text.replace(/\x1c\r?$/, '');
+    return text;
+  }
+
+  function segmentNames() {
+    return Object.keys(SEG);
+  }
+
+  // Some systems/copy-paste lose the \r between segments. Recover it, but only
+  // by splitting on *known* segment names. This is a heuristic because flattened HL7 is inherently ambiguous.
+  function recoverSegmentBreaks(line, fieldDelim) {
+    var names = segmentNames().filter(function (n) { return n !== 'ZZZ'; });
+    var fd = (fieldDelim || '|').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var re = new RegExp('(?:' + names.join('|') + '|Z[A-Z0-9]{2})' + fd, 'g');
+    var cuts = [], m;
+    while ((m = re.exec(line)) !== null) {
+      if (m.index > 0) cuts.push(m.index);
+    }
+    if (!cuts.length) return null;
+    var out = [], prev = 0;
+    for (var i = 0; i < cuts.length; i++) {
+      out.push(line.slice(prev, cuts[i]));
+      prev = cuts[i];
+    }
+    out.push(line.slice(prev));
+    return out.filter(function (s) { return s.trim() !== ''; });
+  }
+
+  function splitLines(raw) {
+    var notes = [];
+    var text = stripWrappers(raw);
+    // Remove only terminal CR/LF framing, not significant spaces in the final field.
+    text = text.replace(/[\r\n]+$/, '');
+    var lines = text.split(/\r\n|\r|\n/).filter(function (l) { return l.trim() !== ''; });
+    if (lines.length === 1) {
+      var guessedField = /^MSH/.test(lines[0]) && lines[0].length >= 4 ? lines[0].charAt(3) : '|';
+      var rec = recoverSegmentBreaks(lines[0], guessedField);
+      if (rec && rec.length > 1) {
+        notes.push('Segment breaks were missing. Recovered ' + rec.length +
+                   ' segments heuristically from recognized segment identifiers; verify the split if a field value itself contains a segment-like token.');
+        lines = rec;
+      }
+    }
+    return { lines: lines, notes: notes };
+  }
+
+  function decodeEscapes(str, d) {
+    if (str.indexOf(d.esc) === -1) return str;
+    var e = d.esc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var re = new RegExp(e + '([^' + e + ']*)' + e, 'g');
+    return str.replace(re, function (whole, code) {
+      switch (code.charAt(0)) {
+        case 'F': return d.field;
+        case 'S': return d.comp;
+        case 'T': return d.sub;
+        case 'R': return d.rep;
+        case 'E': return d.esc;
+        case 'H': case 'N': return '';       // highlight on/off — no text
+        case 'X': {                          // hexadecimal escape
+          var hex = code.slice(1), out = '';
+          if (!hex || hex.length % 2 !== 0 || !/^[0-9A-Fa-f]+$/.test(hex)) return whole;
+          for (var i = 0; i < hex.length; i += 2) {
+            out += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+          }
+          return out;
+        }
+        case '.': {                          // common FT formatting commands
+          if (code === '.br') return '\n';
+          var sp = /^\.sp(\d*)$/.exec(code);
+          if (sp) {
+            var count = sp[1] ? Math.max(1, parseInt(sp[1], 10)) : 1;
+            return new Array(count + 1).join('\n');
+          }
+          return whole;                     // don't silently discard unknown formatting
+        }
+        default: return whole;               // Z-escapes and unknowns: leave visible
+      }
+    });
+  }
+
+  function looksTemporal(datatype, name) {
+    if (/^(TS|DT|DTM|TM|DR)$/.test(datatype || '')) return true;
+    return /date|time/i.test(name || '');
+  }
+
+  // 20240115143000.000-0500 -> 2024-01-15 14:30:00 -05:00
+  function humanizeTimestamp(v) {
+    var m = /^(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\.\d+)?([+-]\d{4})?$/.exec(v.trim());
+    if (!m) return null;
+    var y = m[1], mo = m[2], d = m[3], h = m[4], mi = m[5], s = m[6], tz = m[8];
+    if (!mo) return y;
+    var out = y + '-' + mo + (d ? '-' + d : '');
+    if (h) { out += ' ' + h + ':' + (mi || '00'); if (s) out += ':' + s; }
+    if (tz) out += ' ' + tz.slice(0, 3) + ':' + tz.slice(3);
+    return out;
+  }
+
+  function lookupCode(pathKey, value) {
+    // Repetition markers are display syntax, not part of the HL7 field identity.
+    pathKey = String(pathKey || '').replace(/\[\d+\]/g, '');
+    var t = CODES[pathKey];
+    if (!t) return null;
+    return t[value] || t[value.toUpperCase()] || null;
+  }
+
+  /* ---------- node factory ---------- */
+
+  function node(kind, path, label, value, datatype, canonicalPath) {
+    return {
+      kind: kind, path: path, canonicalPath: canonicalPath || path,
+      label: label || '', value: value == null ? '' : value,
+      datatype: datatype || '', children: [], note: ''
+    };
+  }
+
+  function annotate(n, d) {
+    var hints = [];
+    var code = lookupCode(n.canonicalPath || n.path, n.value);
+    if (code) hints.push(code);
+    if (!code && n.kind === 'component') {
+      var key = String(n.canonicalPath || n.path).replace(/\.1$/, '');
+      var c2 = lookupCode(key, n.value);
+      if (c2 && /\.1$/.test(n.canonicalPath || n.path)) hints.push(c2);
+    }
+    if (n.value && looksTemporal(n.datatype, n.label)) {
+      // Legacy TS may carry degree-of-precision as component 2. Humanize the timestamp component only.
+      var temporalValue = n.datatype === 'TS' ? String(n.value).split(d.comp)[0] : n.value;
+      var t = humanizeTimestamp(temporalValue);
+      if (t && t !== temporalValue) hints.push(t);
+    }
+    if (n.value && n.value.indexOf(d.esc) !== -1) {
+      var dec = decodeEscapes(n.value, d);
+      if (dec !== n.value) hints.push('decodes to: ' + dec);
+    }
+    n.note = hints.join('  ·  ');
+  }
+
+  function splitMessages(raw) {
+    var text = String(raw == null ? '' : raw);
+    if (!text.trim()) return [];
+
+    // Prefer explicit MLLP frames when present: <VT> message <FS><CR>.
+    var framed = [], re = /\x0b([\s\S]*?)\x1c(?:\r)?/g, m;
+    while ((m = re.exec(text)) !== null) {
+      if (m[1].replace(/[\r\n]+$/, '').trim()) framed.push(m[1].replace(/[\r\n]+$/, ''));
+    }
+    if (framed.length) return framed;
+
+    // Otherwise split into segments first, then start a new logical message at each MSH.
+    var sp = splitLines(text);
+    var groups = [], current = [];
+    sp.lines.forEach(function (line) {
+      if (/^MSH./i.test(line) && current.length) {
+        groups.push(current.join('\r'));
+        current = [];
+      }
+      current.push(line);
+    });
+    if (current.length) groups.push(current.join('\r'));
+    return groups.filter(function (g) { return g.trim() !== ''; });
+  }
+
+  function parseMessages(raw) {
+    var messages = splitMessages(raw);
+    return messages.map(function (msg) { return parseSingle(msg); });
+  }
+
+  function parse(raw) {
+    var list = parseMessages(raw);
+    if (!list.length) return parseSingle(raw);
+    list[0].batchCount = list.length;
+    return list[0];
+  }
+
+  function parseSingle(raw) {
+    var sp = splitLines(raw);
+    var lines = sp.lines;
+    var notes = sp.notes.slice();
+    var errors = [];
+
+    if (!lines.length) {
+      return { ok: false, errors: ['Nothing to parse. Paste an HL7 message first.'],
+               warnings: [], notes: notes, segments: [], delims: DEFAULT_DELIMS, meta: {}, rawMessage: '' };
+    }
+
+    var msh = null, mshLineIndex = -1;
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].slice(0, 3).toUpperCase() === 'MSH') { msh = lines[i]; mshLineIndex = i; break; }
+    }
+
+    var d;
+    if (msh && msh.length >= 4) {
+      var enc = msh.substr(4, 4);
+      if (enc.length < 4) errors.push('MSH-2 is incomplete. Four encoding characters are expected after the field separator.');
+      d = {
+        field: msh.charAt(3) || '|', comp: enc.charAt(0) || '^', rep: enc.charAt(1) || '~',
+        esc: enc.charAt(2) || '\\', sub: enc.charAt(3) || '&'
+      };
+    } else {
+      d = Object.assign({}, DEFAULT_DELIMS);
+      errors.push('No MSH segment found. Falling back to standard delimiters |^~\\&');
+    }
+
+    var declaredVersion = '';
+    if (msh) {
+      var mshPartsForVersion = msh.split(d.field);
+      declaredVersion = (mshPartsForVersion[11] || '').split(d.comp)[0] || '';
+    }
+
+    // Count segment occurrences before building paths so every repeated segment gets an explicit [n].
+    var totals = {};
+    lines.forEach(function (line) {
+      var raw = (line.split(d.field)[0] || '').trim().toUpperCase();
+      totals[raw] = (totals[raw] || 0) + 1;
+    });
+
+    var segments = [];
+    var counts = {};
+
+    lines.forEach(function (line, li) {
+      var parts = line.split(d.field);
+      var rawName = (parts[0] || '').trim();
+      var name = rawName.toUpperCase();
+      var isMsh = (name === 'MSH');
+      counts[name] = (counts[name] || 0) + 1;
+      var instance = counts[name];
+      var segPath = totals[name] > 1 ? name + '[' + instance + ']' : name;
+
+      var def = SEG[name] || (/^Z/.test(name) ? SEG.ZZZ : null);
+      var segNode = node('segment', segPath, (def && def.n) || 'Unknown segment', line, '', name);
+      segNode.seg = name;
+      segNode.rawName = rawName;
+      segNode.line = li + 1;
+      segNode.instance = instance;
+
+      if (isMsh) {
+        var f1 = node('field', segPath + '-1', 'Field Separator', d.field, 'ST', 'MSH-1');
+        f1.seg = name; f1.literal = true;
+        segNode.children.push(f1);
+      }
+
+      var obxValueType = name === 'OBX' ? String(parts[2] || '').split(d.comp)[0].toUpperCase() : '';
+
+      for (var p = 1; p < parts.length; p++) {
+        var fieldNum = isMsh ? p + 1 : p;
+        var rawVal = parts[p];
+        var meta = fieldDefinition(def, name, fieldNum, declaredVersion);
+        var fName = meta ? meta[0] : (/^Z/.test(name) ? 'Z-segment field' : 'Unknown field');
+        var fType = meta ? meta[1] : '';
+        if (name === 'OBX' && fieldNum === 5 && obxValueType) fType = obxValueType;
+        var canonicalPath = name + '-' + fieldNum;
+        var path = segPath + '-' + fieldNum;
+        var fNode = node('field', path, fName, rawVal, fType, canonicalPath);
+        fNode.seg = name;
+        if (name === 'OBX' && fieldNum === 5 && obxValueType) {
+          fNode.dynamicDatatype = true;
+          if (obxValueType === 'ED') fNode.encapsulatedData = true;
+        }
+
+        var literal = isMsh && fieldNum === 2;
+        if (literal) fNode.literal = true;
+
+        if (!literal && rawVal !== '') buildRepetitions(fNode, rawVal, path, canonicalPath, name, fType, d);
+        annotate(fNode, d);
+        segNode.children.push(fNode);
+      }
+      segments.push(segNode);
+    });
+
+    var meta = buildMeta(segments, d);
+    meta.dictionaryVersion = versionProfile(meta.version).label;
+    var result = {
+      ok: errors.length === 0, errors: errors, warnings: [], notes: notes,
+      segments: segments, delims: d, meta: meta, counts: counts,
+      lineCount: lines.length, rawMessage: lines.join('\r'), mshLineIndex: mshLineIndex
+    };
+    result.warnings = validateResult(result);
+    return result;
+  }
+
+  function buildRepetitions(parent, rawVal, path, canonicalPath, segName, fType, d) {
+    var reps = rawVal.split(d.rep);
+    if (reps.length > 1) {
+      reps.forEach(function (rv, ri) {
+        var rPath = path + '[' + (ri + 1) + ']';
+        var rCanonical = canonicalPath + '[' + (ri + 1) + ']';
+        var rNode = node('repetition', rPath, 'Repetition ' + (ri + 1), rv, fType, rCanonical);
+        rNode.seg = segName;
+        if (fType === 'ED') rNode.encapsulatedData = true;
+        buildComponents(rNode, rv, rPath, rCanonical, segName, fType, d);
+        annotate(rNode, d);
+        parent.children.push(rNode);
+      });
+    } else {
+      buildComponents(parent, rawVal, path, canonicalPath, segName, fType, d);
+    }
+  }
+
+  function buildComponents(parent, rawVal, path, canonicalPath, segName, fType, d) {
+    var names = DT[fType] || null;
+    // CM is a legacy context-dependent composite. MSH-9 has a known three-part structure;
+    // other CM values remain generically expandable rather than receiving incorrect labels.
+    if (fType === 'CM' && String(canonicalPath).replace(/\[\d+\]/g, '') === 'MSH-9') {
+      names = ['Message Code','Trigger Event','Message Structure'];
+    }
+    // For known scalar datatypes, do not invent component structure. Unknown/custom fields
+    // remain generically expandable because Z-segments often contain local composites.
+    if (fType && fType !== '*' && !names && fType !== 'CM') return;
+
+    var comps = rawVal.split(d.comp);
+    if (comps.length <= 1) {
+      var subs = rawVal.split(d.sub);
+      if (subs.length > 1) {
+        subs.forEach(function (sv, si) {
+          var sNode = node('subcomponent', path + '.1.' + (si + 1),
+                           'Subcomponent ' + (si + 1), sv, '', canonicalPath + '.1.' + (si + 1));
+          sNode.seg = segName; annotate(sNode, d); parent.children.push(sNode);
+        });
+      }
+      return;
+    }
+
+    comps.forEach(function (cv, ci) {
+      var cNum = ci + 1;
+      var cPath = path + '.' + cNum;
+      var cCanonical = canonicalPath + '.' + cNum;
+      var cName = (names && names[ci]) || ('Component ' + cNum);
+      var nestedType = (DT_COMPONENT_TYPES[fType] && DT_COMPONENT_TYPES[fType][cNum]) || '';
+      var cNode = node('component', cPath, cName, cv, nestedType, cCanonical);
+      cNode.seg = segName;
+      if (fType === 'ED' && cNum === 5) cNode.opaquePayload = true;
+      var subs = cv.split(d.sub);
+      if (subs.length > 1) {
+        var subNames = SUBDT[nestedType] || null;
+        subs.forEach(function (sv, si) {
+          var sNum = si + 1;
+          var sNode = node('subcomponent', cPath + '.' + sNum,
+                           (subNames && subNames[si]) || ('Subcomponent ' + sNum), sv, '', cCanonical + '.' + sNum);
+          sNode.seg = segName; annotate(sNode, d); cNode.children.push(sNode);
+        });
+      }
+      annotate(cNode, d);
+      parent.children.push(cNode);
+    });
+  }
+
+  function fieldNode(seg, fieldNum) {
+    var key = seg.seg + '-' + fieldNum;
+    for (var i = 0; i < seg.children.length; i++) {
+      if ((seg.children[i].canonicalPath || seg.children[i].path) === key) return seg.children[i];
+    }
+    return null;
+  }
+
+  function fieldValue(seg, fieldNum, compNum) {
+    var f = fieldNode(seg, fieldNum);
+    if (!f) return '';
+    if (!compNum) return f.value;
+    var key = seg.seg + '-' + fieldNum + '.' + compNum;
+    var stack = f.children.slice();
+    while (stack.length) {
+      var n = stack.shift();
+      var np = String(n.canonicalPath || n.path);
+      if (np === key || np.replace(/\[\d+\]/g, '') === key) return n.value;
+      stack = stack.concat(n.children || []);
+    }
+    if (compNum === 1 && f.value.indexOf('^') === -1) return f.value;
+    return '';
+  }
+
+
+  function edParts(rawVal, d) {
+    var parts = String(rawVal == null ? '' : rawVal).split((d && d.comp) || '^');
+    return {
+      sourceApplication: parts[0] || '',
+      typeOfData: parts[1] || '',
+      dataSubtype: parts[2] || '',
+      encoding: parts[3] || '',
+      data: parts.length > 4 ? parts.slice(4).join((d && d.comp) || '^') : ''
+    };
+  }
+
+  function pdfMetadataHint(info) {
+    var type = String(info.typeOfData || '').toLowerCase();
+    var subtype = String(info.dataSubtype || '').toLowerCase();
+    return type === 'pdf' || subtype === 'pdf' || type.indexOf('application/pdf') !== -1 || subtype.indexOf('application/pdf') !== -1 || /(?:^|[-_.])pdf(?:$|[-_.])/.test(subtype);
+  }
+
+  function pdfPayloadHint(info) {
+    var enc = String(info.encoding || '').toLowerCase();
+    var data = String(info.data || '').replace(/\s+/g, '');
+    if (/^base64$/i.test(enc)) return /^JVBERi0/.test(data);        // "%PDF-" in Base64
+    if (/^hex$/i.test(enc)) return /^255044462[dD]/.test(data);   // "%PDF-" in hexadecimal
+    if (enc === 'a' || enc === '') return /^%PDF-/.test(String(info.data || '').replace(/^\s+/, ''));
+    return false;
+  }
+
+  function pdfAttachments(res) {
+    var out = [];
+    if (!res || !res.segments) return out;
+    res.segments.forEach(function (seg) {
+      if (seg.seg !== 'OBX') return;
+      var valueType = String(fieldValue(seg, 2) || '').split(res.delims.comp)[0].toUpperCase();
+      if (valueType !== 'ED') return;
+      var f = fieldNode(seg, 5);
+      if (!f) return;
+      var values = f.children && f.children.some(function (n) { return n.kind === 'repetition'; }) ?
+        f.children.filter(function (n) { return n.kind === 'repetition'; }) : [f];
+      values.forEach(function (valueNode, ri) {
+        var info = edParts(valueNode.value, res.delims);
+        if (!pdfMetadataHint(info) && !pdfPayloadHint(info)) return;
+        out.push({
+          segmentPath: seg.path,
+          valuePath: valueNode.path,
+          repetition: values.length > 1 ? ri + 1 : null,
+          observationId: fieldValue(seg, 3, 1) || fieldValue(seg, 3),
+          observationText: fieldValue(seg, 3, 2),
+          sourceApplication: info.sourceApplication,
+          typeOfData: info.typeOfData,
+          dataSubtype: info.dataSubtype,
+          encoding: info.encoding,
+          data: info.data
+        });
+      });
+    });
+    return out;
+  }
+
+  function findValue(segments, segName, fieldNum, compNum) {
+    for (var i = 0; i < segments.length; i++) {
+      if (segments[i].seg === segName) return fieldValue(segments[i], fieldNum, compNum);
+    }
+    return '';
+  }
+
+  function buildMeta(segments, d) {
+    var code = findValue(segments, 'MSH', 9, 1);
+    var trig = findValue(segments, 'MSH', 9, 2);
+    var struct = findValue(segments, 'MSH', 9, 3);
+    var when = findValue(segments, 'MSH', 7, 1) || findValue(segments, 'MSH', 7);
+    return {
+      messageType: [code, trig].filter(Boolean).join('^'), structure: struct,
+      trigger: trig ? (CODES['EVN-1'][trig] || '') : '',
+      version: findValue(segments, 'MSH', 12, 1) || findValue(segments, 'MSH', 12),
+      controlId: findValue(segments, 'MSH', 10),
+      sendingApp: findValue(segments, 'MSH', 3, 1) || findValue(segments, 'MSH', 3),
+      sendingFac: findValue(segments, 'MSH', 4, 1) || findValue(segments, 'MSH', 4),
+      receivingApp: findValue(segments, 'MSH', 5, 1) || findValue(segments, 'MSH', 5),
+      receivingFac: findValue(segments, 'MSH', 6, 1) || findValue(segments, 'MSH', 6),
+      timestamp: when, timestampHuman: when ? humanizeTimestamp(when) : '',
+      processingId: findValue(segments, 'MSH', 11, 1) || findValue(segments, 'MSH', 11),
+      profileId: findValue(segments, 'MSH', 21, 1) || findValue(segments, 'MSH', 21),
+      delims: d
+    };
+  }
+
+  function validTemporal(v, datatype) {
+    var s = String(v || '').trim();
+    if (!s) return true;
+    if (datatype === 'TM') {
+      var tm = /^(\d{2})(\d{2})?(\d{2})?(\.\d+)?([+-]\d{4})?$/.exec(s);
+      if (!tm) return false;
+      return +tm[1] <= 23 && (!tm[2] || +tm[2] <= 59) && (!tm[3] || +tm[3] <= 59);
+    }
+    var m = /^(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\.\d+)?([+-]\d{4})?$/.exec(s);
+    if (!m) return false;
+    var y = +m[1], mo = m[2] ? +m[2] : null, day = m[3] ? +m[3] : null;
+    if (mo != null && (mo < 1 || mo > 12)) return false;
+    if (day != null) {
+      if (!mo) return false;
+      var maxDay = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+      if (day < 1 || day > maxDay) return false;
+    }
+    if (m[4] && +m[4] > 23) return false;
+    if (m[5] && +m[5] > 59) return false;
+    if (m[6] && +m[6] > 59) return false;
+    if (m[8]) {
+      var zh = +m[8].slice(1,3), zm = +m[8].slice(3,5);
+      if (zh > 14 || zm > 59) return false;
+    }
+    return true;
+  }
+
+  function validateResult(res) {
+    var warnings = [];
+    function warn(path, message) { warnings.push({ path:path || '', message:message }); }
+
+    if (res.mshLineIndex > 0) warn('MSH', 'The first MSH segment is not the first segment in this message.');
+    if (!res.meta.version) warn('MSH-12', 'Version ID is empty, so version-specific interpretation is limited.');
+    else if (!VERSION_PROFILES[res.meta.version]) warn('MSH-12', 'Version ' + res.meta.version + ' is not one of this inspector\'s explicitly profiled versions; common v2.x labels are being used.');
+
+    var ds = [res.delims.field, res.delims.comp, res.delims.rep, res.delims.esc, res.delims.sub];
+    var distinct = {};
+    ds.forEach(function (x) { distinct[x] = (distinct[x] || 0) + 1; });
+    Object.keys(distinct).forEach(function (x) {
+      if (distinct[x] > 1) warn('MSH-1/2', 'Delimiter ' + JSON.stringify(x) + ' is assigned to more than one encoding role.');
+    });
+
+    res.segments.forEach(function (seg) {
+      if (!/^[A-Z0-9]{3}$/.test(seg.seg)) warn(seg.path, 'Segment identifier is not a three-character A-Z/0-9 code.');
+      (function validateTemporalNodes(nodes) {
+        nodes.forEach(function (n) {
+          var temporalType = /^(TS|DT|DTM|TM)$/.test(n.datatype || '');
+          var hasRepetitions = (n.children || []).some(function (c) { return c.kind === 'repetition'; });
+          if (temporalType && n.value && !hasRepetitions) {
+            var temporalValue = n.datatype === 'TS' ? String(n.value).split(res.delims.comp)[0] : n.value;
+            if (!validTemporal(temporalValue, n.datatype)) warn(n.path, 'Value does not look like a valid ' + n.datatype + ' date/time.');
+          }
+          if (n.children && n.children.length) validateTemporalNodes(n.children);
+        });
+      })(seg.children);
+      if (seg.seg === 'OBX') {
+        var type = String(fieldValue(seg, 2) || '').split(res.delims.comp)[0].toUpperCase();
+        var value = fieldValue(seg, 5);
+        if (value && !type) warn(fieldNode(seg, 5) ? fieldNode(seg, 5).path : seg.path + '-5', 'OBX-5 contains a value but OBX-2 Value Type is empty.');
+        if (type && !OBX_VALUE_TYPES[type]) warn(fieldNode(seg, 2) ? fieldNode(seg, 2).path : seg.path + '-2', 'Value Type ' + type + ' is not in this inspector\'s known OBX datatype list; OBX-5 is shown without datatype-specific structure.');
+      }
+    });
+    pdfAttachments(res).forEach(function (att) {
+      var enc = String(att.encoding || '').toLowerCase();
+      var data = String(att.data || '');
+      if (!data) {
+        warn(att.valuePath, 'This OBX identifies a PDF but ED.5 Data is empty.');
+        return;
+      }
+      if (enc !== 'base64' && enc !== 'hex' && enc !== 'a' && enc !== '') {
+        warn(att.valuePath, 'PDF attachment uses unsupported ED encoding ' + JSON.stringify(att.encoding) + '. The inspector can preview Base64, Hex, or unencoded ASCII PDF data.');
+      } else if (enc === 'base64') {
+        var clean = data.replace(/\s+/g, '');
+        if (!/^[A-Za-z0-9+/]*={0,2}$/.test(clean) || clean.length % 4 === 1) {
+          warn(att.valuePath, 'PDF attachment does not look like valid Base64 data.');
+        }
+      } else if (enc === 'hex') {
+        var hx = data.replace(/\s+/g, '');
+        if (hx.length % 2 !== 0 || !/^[0-9A-Fa-f]+$/.test(hx)) warn(att.valuePath, 'PDF attachment does not look like valid hexadecimal data.');
+      }
+    });
+
+    return warnings;
+  }
+
+  var SAMPLE = [
+    'MSH|^~\\&|EPIC|MERCY_GENERAL|LIS|CENTRAL_LAB|20240115143000||ORU^R01|MSG00001234|P|2.5.1',
+    'PID|1||MRN123456^^^MERCY^MR~987654321^^^SSA^SS||DOE^JANE^ELIZABETH^JR^DR^^L||19850312|F||2106-3^White^HL70005|123 MAIN ST^APT 4B^BOSTON^MA^02101^USA^H||(617)555-0142^PRN^PH^jane.doe\\S\\example.com|||M|CHR|ACC0099887',
+    'PV1|1|I|ICU^204^A^MERCY_GENERAL||||1234^SMITH^ROBERT^A^^DR^MD|5678^JONES^EMILY^^^DR|||||||||V0012345|SELF||||||||||||||||||||||||20240114080000',
+    'ORC|RE|ORD556677^EPIC|FILL889900^LIS|||||||||1234^SMITH^ROBERT^A^^DR^MD',
+    'OBR|1|ORD556677^EPIC|FILL889900^LIS|CBC^COMPLETE BLOOD COUNT^L|||20240115120000|||||||20240115121500||1234^SMITH^ROBERT^A|||||||20240115143000|||F',
+    'OBX|1|NM|WBC^WHITE BLOOD CELL COUNT^L||11.2|10*3/uL|4.0-10.5|H|||F|||20240115143000',
+    'OBX|2|NM|HGB^HEMOGLOBIN^L||8.9|g/dL|12.0-16.0|L|||F|||20240115143000',
+    'OBX|3|ST|COMMENT^INTERPRETATION^L||Mild anemia noted.\\.br\\Recommend follow-up in 2 weeks.||||||F',
+    'NTE|1|L|Specimen slightly hemolyzed; results interpreted with caution.'
+  ].join('\r');
+
+  var api = {
+    parse: parse, parseMessages: parseMessages, splitMessages: splitMessages,
+    decodeEscapes: decodeEscapes, humanizeTimestamp: humanizeTimestamp,
+    SEG: SEG, DT: DT, SUBDT: SUBDT, CODES: CODES, SAMPLE: SAMPLE,
+    VERSION_PROFILES: VERSION_PROFILES, versionProfile: versionProfile,
+    pdfAttachments: pdfAttachments, edParts: edParts,
+    DEFAULT_DELIMS: DEFAULT_DELIMS
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  root.HL7 = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* ============================================================
+   UI layer.
+   SAFETY RULE: message content reaches the DOM only through
+   textContent / createTextNode. There is no innerHTML call
+   anywhere in this file that touches parsed data.
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  var state = {
+    res: null, messages: [], messageIndex: 0,
+    search: '', hideEmpty: true, decode: false, segFilter: null, summary: false,
+    autoExpand: true, expanded: Object.create(null), selected: null, rows: [],
+    pdfAttachments: [], pdfPaths: Object.create(null), pdfUrl: null, pdfCurrent: null
+  };
+
+  var KNOWN_HUES = ['MSH','PID','PV1','PV2','OBR','OBX','ORC','NTE','EVN','MSA','ERR','AL1','DG1','IN1','GT1','SPM'];
+
+  function segColor(seg) {
+    return KNOWN_HUES.indexOf(seg) !== -1 ? 'var(--seg-' + seg + ')' : 'var(--seg-default)';
+  }
+
+  /* ---------- text rendering with search highlighting ---------- */
+
+  // Plain text + <mark> runs. Built from text nodes only — never innerHTML.
+  function appendHighlighted(target, text, query) {
+    if (!query) { target.appendChild(document.createTextNode(text)); return; }
+    var lower = text.toLowerCase();
+    var q = query.toLowerCase();
+    var from = 0, idx;
+    while ((idx = lower.indexOf(q, from)) !== -1) {
+      if (idx > from) target.appendChild(document.createTextNode(text.slice(from, idx)));
+      var m = document.createElement('mark');
+      m.className = 'hit';
+      m.textContent = text.substr(idx, q.length);
+      target.appendChild(m);
+      from = idx + q.length;
+    }
+    if (from < text.length) target.appendChild(document.createTextNode(text.slice(from)));
+  }
+
+  /* ---------- value rendering (non-printables become chips) ---------- */
+
+  function appendValue(target, text, query) {
+    if (text === '') {
+      var e = document.createElement('span');
+      e.className = 'val empty';
+      e.textContent = 'empty';
+      target.appendChild(e);
+      return;
+    }
+    var span = document.createElement('span');
+    span.className = 'val';
+
+    var lower = query ? text.toLowerCase() : '';
+    var q = query ? query.toLowerCase() : '';
+    var hits = [];
+    if (q) {
+      var from = 0, idx;
+      while ((idx = lower.indexOf(q, from)) !== -1) {
+        hits.push([idx, idx + q.length]);
+        from = idx + q.length;
+      }
+    }
+
+    var buf = '';
+    function flush(container) {
+      if (buf) { container.appendChild(document.createTextNode(buf)); buf = ''; }
+    }
+
+    for (var i = 0; i < text.length; i++) {
+      var inHit = hits.some(function (h) { return i >= h[0] && i < h[1]; });
+      var code = text.charCodeAt(i);
+      var isNp = code < 32 || code === 127;
+
+      if (isNp) {
+        flush(span);
+        var chip = document.createElement('span');
+        chip.className = 'np';
+        chip.textContent = '0x' + code.toString(16).toUpperCase().padStart(2, '0');
+        chip.title = 'non-printable character (code ' + code + ')';
+        span.appendChild(chip);
+        continue;
+      }
+      if (inHit) {
+        flush(span);
+        var m = document.createElement('mark');
+        m.className = 'hit';
+        var run = '';
+        while (i < text.length && hits.some(function (h) { return i >= h[0] && i < h[1]; })) {
+          run += text[i]; i++;
+        }
+        i--;
+        m.textContent = run;
+        span.appendChild(m);
+        continue;
+      }
+      buf += text[i];
+    }
+    flush(span);
+    target.appendChild(span);
+  }
+
+  function edDisplaySummary(node) {
+    if (!state.res || !node || (!node.encapsulatedData && !node.opaquePayload)) return null;
+    if (node.opaquePayload) {
+      return '[encapsulated data · ' + node.value.length.toLocaleString() + ' characters]';
+    }
+    var info = HL7.edParts(node.value, state.res.delims);
+    var bits = ['ED'];
+    if (info.typeOfData || info.dataSubtype) bits.push([info.typeOfData, info.dataSubtype].filter(Boolean).join('/'));
+    if (info.encoding) bits.push(info.encoding);
+    if (info.data) bits.push(formatBytes(estimatePdfBytes({ data:info.data, encoding:info.encoding })) || (info.data.length.toLocaleString() + ' characters'));
+    return '[' + bits.join(' · ') + ']';
+  }
+
+  function displayValue(node) {
+    var edSummary = edDisplaySummary(node);
+    if (edSummary) return edSummary;
+    var value = (!state.decode || !state.res) ? node.value : HL7.decodeEscapes(node.value, state.res.delims);
+    // Avoid creating enormous text nodes in the tree for unusually large free-text values.
+    if (value.length > 20000) return value.slice(0, 20000) + '\n… [' + (value.length - 20000).toLocaleString() + ' more characters; Copy value keeps the full content]';
+    return value;
+  }
+
+  function copyValue(node) {
+    if (!node || node.kind === 'segment') return node ? node.value : '';
+    return state.decode && state.res ? HL7.decodeEscapes(node.value, state.res.delims) : node.value;
+  }
+
+  /* ---------- match / visibility ---------- */
+
+  function nodeMatches(node, q) {
+    if (!q) return false;
+    var pathHit = node.path && node.path.toLowerCase().indexOf(q) !== -1;
+    var labelHit = node.label && node.label.toLowerCase().indexOf(q) !== -1;
+    // Base64/Hex attachment payloads are opaque binary transport, not useful search text.
+    var valueHit = !node.opaquePayload && !node.encapsulatedData && node.value && String(node.value).toLowerCase().indexOf(q) !== -1;
+    return pathHit || labelHit || valueHit;
+  }
+
+  function subtreeMatches(node, q) {
+    if (nodeMatches(node, q)) return true;
+    for (var i = 0; i < node.children.length; i++) {
+      if (subtreeMatches(node.children[i], q)) return true;
+    }
+    return false;
+  }
+
+  function isEmptyLeaf(node) {
+    return node.value === '' && node.children.length === 0;
+  }
+
+  /* ---------- uid assignment ---------- */
+
+  function assignUids(res, messageIndex) {
+    var mp = 'm' + (messageIndex || 0) + '.';
+    res.segments.forEach(function (seg, si) {
+      seg.uid = mp + 's' + si;
+      (function walk(nodes, prefix) {
+        nodes.forEach(function (n, i) { n.uid = prefix + '.' + i; walk(n.children, n.uid); });
+      })(seg.children, seg.uid);
+    });
+  }
+
+  /* ---------- tree render ---------- */
+
+  function render() {
+    var tree = $('tree');
+    tree.textContent = '';
+    state.rows = [];
+
+    if (!state.res || !state.res.segments.length) {
+      tree.appendChild(emptyState());
+      return;
+    }
+
+    if (state.summary) {
+      renderSummary(tree);
+      $('countTag').textContent = 'summary';
+      return;
+    }
+
+    var q = state.search.trim().toLowerCase();
+    var frag = document.createDocumentFragment();
+    var shown = 0;
+
+    state.res.segments.forEach(function (seg) {
+      if (state.segFilter && seg.seg !== state.segFilter) return;
+      if (q && !subtreeMatches(seg, q)) return;
+      shown++;
+      frag.appendChild(buildRow(seg, 1, q));
+      if (isExpanded(seg, q)) {
+        appendChildren(frag, seg, 2, q);
+      }
+    });
+
+    if (!shown) {
+      tree.appendChild(noResults(q));
+      updateCount(0);
+      return;
+    }
+    tree.appendChild(frag);
+    updateCount(shown);
+  }
+
+  function appendChildren(frag, parent, depth, q) {
+    parent.children.forEach(function (child) {
+      if (state.hideEmpty && isEmptyLeaf(child) && !q) return;
+      if (q && !subtreeMatches(child, q)) return;
+      frag.appendChild(buildRow(child, depth, q));
+      if (child.children.length && isExpanded(child, q)) {
+        appendChildren(frag, child, depth + 1, q);
+      }
+    });
+  }
+
+  // Messages with thousands of segments (big lab results) would render tens of
+  // thousands of rows if every segment opened by default, so they start closed.
+  var AUTO_EXPAND_LIMIT = 60;
+
+  function isExpanded(node, q) {
+    if (q) return true;                            // search reveals everything
+    if (node.uid in state.expanded) return state.expanded[node.uid];
+    return node.kind === 'segment' && state.autoExpand;
+  }
+
+  function buildRow(node, depth, q) {
+    var row = document.createElement('div');
+    row.className = 'row depth-' + depth + (node.kind === 'segment' ? ' seg-row' : '');
+    row.style.setProperty('--seg-color', segColor(node.seg || node.path));
+    row.tabIndex = -1;
+    row.dataset.uid = node.uid;
+    if (state.selected === node.uid) row.className += ' sel';
+
+    // disclosure
+    var ind = document.createElement('span');
+    ind.className = 'indent';
+    var tw = document.createElement('button');
+    tw.className = 'twisty';
+    var hasKids = node.children.length > 0 &&
+      (!state.hideEmpty || q || node.children.some(function (c) { return !isEmptyLeaf(c); }));
+    if (hasKids) {
+      tw.textContent = '\u25B6';
+      tw.setAttribute('aria-expanded', String(isExpanded(node, q)));
+      tw.setAttribute('aria-label', (isExpanded(node, q) ? 'Collapse ' : 'Expand ') + node.path);
+      tw.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        toggle(node);
+      });
+    } else {
+      tw.className += ' leaf';
+      tw.textContent = '\u25B6';
+      tw.tabIndex = -1;
+    }
+    ind.appendChild(tw);
+    row.appendChild(ind);
+
+    // address gutter — the signature column
+    var addr = document.createElement('span');
+    addr.className = 'addr';
+    appendHighlighted(addr, node.path, q);
+    addr.title = node.path;
+    row.appendChild(addr);
+
+    // name
+    var name = document.createElement('span');
+    name.className = 'name';
+    appendHighlighted(name, node.label, q);
+    if (node.datatype && node.datatype !== '*') {
+      var dt = document.createElement('span');
+      dt.className = 'dtype';
+      dt.textContent = node.datatype;
+      dt.title = (node.dynamicDatatype ? 'OBX-2 declares OBX-5 datatype: ' : 'HL7 datatype: ') + node.datatype;
+      name.appendChild(dt);
+    }
+    var rowPdf = state.pdfPaths[node.path];
+    if (rowPdf) {
+      var pb = document.createElement('span');
+      pb.className = 'pdf-badge';
+      pb.textContent = 'PDF';
+      pb.title = 'Embedded PDF attachment';
+      name.appendChild(pb);
+    }
+    row.appendChild(name);
+
+    // value + note
+    var vc = document.createElement('span');
+    vc.className = 'valcol';
+    if (node.kind === 'segment') {
+      var sv = document.createElement('span');
+      sv.className = 'val';
+      var fieldCount = node.children.length;
+      sv.textContent = fieldCount + (fieldCount === 1 ? ' field' : ' fields') +
+                       '  ·  line ' + node.line +
+                       (node.instance > 1 ? '  ·  instance ' + node.instance : '');
+      vc.appendChild(sv);
+    } else {
+      appendValue(vc, displayValue(node), q);
+      if (node.note) {
+        var nt = document.createElement('span');
+        nt.className = 'note';
+        var ar = document.createElement('span');
+        ar.className = 'arrow';
+        ar.textContent = '\u21B3 ';
+        nt.appendChild(ar);
+        nt.appendChild(document.createTextNode(node.note));
+        vc.appendChild(nt);
+      }
+    }
+    row.appendChild(vc);
+
+    // hover tools
+    var tools = document.createElement('span');
+    tools.className = 'rowtools';
+    tools.appendChild(toolBtn('path', 'Copy the HL7 position path', function (ev) {
+      ev.stopPropagation(); copy(node.path, 'Copied ' + node.path);
+    }));
+    tools.appendChild(toolBtn('value', 'Copy this value', function (ev) {
+      ev.stopPropagation();
+      copy(copyValue(node), 'Copied value');
+    }));
+    if (rowPdf) {
+      tools.appendChild(toolBtn('PDF', 'View embedded PDF', function (ev) {
+        ev.stopPropagation();
+        openPdf(rowPdf);
+      }));
+    }
+    row.appendChild(tools);
+
+    row.addEventListener('click', function () { select(node); });
+    row.addEventListener('dblclick', function () { if (hasKids) toggle(node); });
+
+    state.rows.push({ uid: node.uid, node: node, el: row, hasKids: hasKids, depth: depth });
+    return row;
+  }
+
+  function toolBtn(label, title, fn) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.title = title;
+    b.addEventListener('click', fn);
+    return b;
+  }
+
+  function emptyState() {
+    var d = document.createElement('div');
+    d.className = 'empty-state';
+    var b = document.createElement('div');
+    b.className = 'big';
+    b.textContent = 'No message loaded';
+    d.appendChild(b);
+    d.appendChild(document.createTextNode('Paste an HL7 v2 message above and choose Parse message, or load the sample to look around.'));
+    return d;
+  }
+
+  function noResults(q) {
+    var d = document.createElement('div');
+    d.className = 'empty-state';
+    var b = document.createElement('div');
+    b.className = 'big';
+    b.textContent = 'Nothing matches';
+    d.appendChild(b);
+    d.appendChild(document.createTextNode('No field path, name, or value contains "' + q + '". Clear the filter to see the whole message.'));
+    return d;
+  }
+
+
+  /* ---------- summary view ---------- */
+
+  function getSegments(name) {
+    if (!state.res) return [];
+    return state.res.segments.filter(function (s) { return s.seg === name; });
+  }
+
+  function getField(seg, number) {
+    if (!seg) return null;
+    var key = seg.seg + '-' + number;
+    for (var i = 0; i < seg.children.length; i++) {
+      if ((seg.children[i].canonicalPath || seg.children[i].path) === key) return seg.children[i];
+    }
+    return null;
+  }
+
+  function makeSummaryCard(title) {
+    var card = document.createElement('section'); card.className = 'summary-card';
+    var h = document.createElement('div'); h.className = 'summary-title'; h.textContent = title; card.appendChild(h);
+    return card;
+  }
+
+  function appendSummaryField(card, seg, fieldNum) {
+    var f = getField(seg, fieldNum);
+    if (!f || f.value === '') return false;
+    var row = document.createElement('div'); row.className = 'summary-row';
+    var p = document.createElement('div'); p.className = 'summary-path'; p.textContent = f.path;
+    var n = document.createElement('div'); n.className = 'summary-name'; n.textContent = f.label;
+    var v = document.createElement('div'); v.className = 'summary-value';
+    v.textContent = state.decode && state.res ? HL7.decodeEscapes(f.value, state.res.delims) : f.value;
+    row.appendChild(p); row.appendChild(n); row.appendChild(v); card.appendChild(row); return true;
+  }
+
+  function renderSummary(tree) {
+    var wrap = document.createElement('div'); wrap.className = 'summary-wrap';
+    var msh = getSegments('MSH')[0], pid = getSegments('PID')[0], pv1 = getSegments('PV1')[0];
+
+    if (msh) {
+      var mc = makeSummaryCard('Message');
+      [3,4,5,6,7,9,10,11,12,21].forEach(function (n) { appendSummaryField(mc, msh, n); });
+      wrap.appendChild(mc);
+    }
+    if (pid) {
+      var pc = makeSummaryCard('Patient');
+      [3,5,7,8,11,13,18].forEach(function (n) { appendSummaryField(pc, pid, n); });
+      wrap.appendChild(pc);
+    }
+    if (pv1) {
+      var vc = makeSummaryCard('Visit');
+      [2,3,7,8,10,19,44,45].forEach(function (n) { appendSummaryField(vc, pv1, n); });
+      wrap.appendChild(vc);
+    }
+
+    getSegments('OBR').forEach(function (obr, i) {
+      var oc = makeSummaryCard('Order / OBR ' + (i + 1));
+      [2,3,4,7,13,14,16,24,25,32].forEach(function (n) { appendSummaryField(oc, obr, n); });
+      wrap.appendChild(oc);
+    });
+
+    var obxs = getSegments('OBX');
+    if (obxs.length) {
+      var rc = makeSummaryCard('Results / OBX (' + obxs.length + ')');
+      var head = document.createElement('div'); head.className = 'summary-result-line summary-result-head';
+      ['Path','Observation','Value','Units','Status'].forEach(function (t) { var x=document.createElement('div'); x.textContent=t; head.appendChild(x); });
+      rc.appendChild(head);
+      obxs.slice(0, 100).forEach(function (obx) {
+        var line = document.createElement('div'); line.className = 'summary-result-line';
+        var f3=getField(obx,3), f5=getField(obx,5), f6=getField(obx,6), f11=getField(obx,11);
+        var values = [obx.path, f3 ? f3.value : '', f5 ? f5.value : '', f6 ? f6.value : '', f11 ? f11.value : ''];
+        values.forEach(function (val, i) { var x=document.createElement('div'); if (i===0 || i===2) x.className='mono'; x.textContent=val || '—'; line.appendChild(x); });
+        rc.appendChild(line);
+      });
+      if (obxs.length > 100) {
+        var more=document.createElement('div'); more.className='summary-row'; more.textContent=(obxs.length-100)+' additional OBX segments are not shown in Summary; use the OBX tree filter to inspect them.'; rc.appendChild(more);
+      }
+      wrap.appendChild(rc);
+    }
+    tree.appendChild(wrap);
+  }
+
+
+  /* ---------- embedded PDF viewer ---------- */
+
+  function formatBytes(n) {
+    if (!isFinite(n) || n < 0) return '';
+    if (n < 1024) return Math.round(n) + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(n < 10240 ? 1 : 0) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function estimatePdfBytes(att) {
+    var data = String(att && att.data || '').replace(/\s+/g, '');
+    var enc = String(att && att.encoding || '').toLowerCase();
+    if (enc === 'base64') {
+      var padding = (/==$/.test(data) ? 2 : (/=$/.test(data) ? 1 : 0));
+      return Math.max(0, Math.floor(data.length * 3 / 4) - padding);
+    }
+    if (enc === 'hex') return Math.floor(data.length / 2);
+    return data.length;
+  }
+
+  function renderPdfAttachments() {
+    var box = $('attachments');
+    box.textContent = '';
+    var list = state.pdfAttachments || [];
+    if (!state.res || !list.length) { box.classList.remove('on'); return; }
+    box.classList.add('on');
+
+    var head = document.createElement('div'); head.className = 'attachments-head';
+    var title = document.createElement('span'); title.className = 'attachments-title';
+    title.textContent = list.length + ' embedded PDF' + (list.length === 1 ? '' : 's') + ' detected';
+    var hint = document.createElement('span'); hint.className = 'attachments-hint'; hint.textContent = 'Decoded and viewed locally in this browser';
+    head.appendChild(title); head.appendChild(hint); box.appendChild(head);
+
+    var rows = document.createElement('div'); rows.className = 'attachment-list';
+    list.forEach(function (att, i) {
+      var item = document.createElement('div'); item.className = 'attachment-item';
+      var copy = document.createElement('div');
+      var name = document.createElement('div'); name.className = 'attachment-name';
+      name.textContent = att.observationText || att.observationId || ('Embedded PDF ' + (i + 1));
+      var meta = document.createElement('div'); meta.className = 'attachment-meta';
+      var bits = [att.valuePath, [att.typeOfData, att.dataSubtype].filter(Boolean).join('/'), att.encoding || 'no encoding', formatBytes(estimatePdfBytes(att))].filter(Boolean);
+      meta.textContent = bits.join('  ·  ');
+      copy.appendChild(name); copy.appendChild(meta);
+      var button = document.createElement('button'); button.className = 'btn'; button.type = 'button'; button.textContent = 'View PDF';
+      button.addEventListener('click', function () { openPdf(att); });
+      item.appendChild(copy); item.appendChild(button); rows.appendChild(item);
+    });
+    box.appendChild(rows);
+  }
+
+  function decodePdfBytes(att) {
+    var enc = String(att.encoding || '').toLowerCase();
+    var data = String(att.data || '');
+    if (!data) throw new Error('The PDF payload is empty.');
+
+    if (enc === 'base64') {
+      var clean = data.replace(/\s+/g, '');
+      if (!/^[A-Za-z0-9+/]*={0,2}$/.test(clean) || clean.length % 4 === 1) throw new Error('The PDF payload is not valid Base64.');
+      while (clean.length % 4) clean += '=';
+      var padding = (/==$/.test(clean) ? 2 : (/=$/.test(clean) ? 1 : 0));
+      var expected = Math.max(0, Math.floor(clean.length * 3 / 4) - padding);
+      var b = new Uint8Array(expected);
+      var write = 0;
+      // Decode in chunks (multiples of 4 Base64 characters) so large embedded reports
+      // do not require one equally-large temporary binary string.
+      var chunkChars = 32768;
+      try {
+        for (var off = 0; off < clean.length; off += chunkChars) {
+          var chunk = clean.slice(off, Math.min(clean.length, off + chunkChars));
+          var binary = atob(chunk);
+          for (var i = 0; i < binary.length && write < b.length; i++) b[write++] = binary.charCodeAt(i);
+        }
+      } catch (e) { throw new Error('The PDF payload could not be Base64-decoded.'); }
+      return write === b.length ? b : b.slice(0, write);
+    }
+
+    if (enc === 'hex') {
+      var hex = data.replace(/\s+/g, '');
+      if (hex.length % 2 || !/^[0-9A-Fa-f]+$/.test(hex)) throw new Error('The PDF payload is not valid hexadecimal data.');
+      var hb = new Uint8Array(hex.length / 2);
+      for (var h = 0; h < hex.length; h += 2) hb[h / 2] = parseInt(hex.substr(h, 2), 16);
+      return hb;
+    }
+
+    if (enc === 'a' || enc === '') {
+      // ED encoding A means displayable ASCII. Preserve each character as one byte.
+      var ab = new Uint8Array(data.length);
+      for (var a = 0; a < data.length; a++) {
+        var code = data.charCodeAt(a);
+        if (code > 255) throw new Error('The unencoded PDF contains characters that cannot be represented as single bytes.');
+        ab[a] = code;
+      }
+      return ab;
+    }
+
+    throw new Error('Unsupported ED encoding: ' + (att.encoding || '(empty)') + '. This viewer supports Base64, Hex, and A (unencoded ASCII).');
+  }
+
+  function hasPdfSignature(bytes) {
+    var limit = Math.min(bytes.length - 5, 1024);
+    for (var i = 0; i <= limit; i++) {
+      if (bytes[i] === 0x25 && bytes[i+1] === 0x50 && bytes[i+2] === 0x44 && bytes[i+3] === 0x46 && bytes[i+4] === 0x2D) return true;
+    }
+    return false;
+  }
+
+  function safePdfFilename(att) {
+    var base = att.observationText || att.observationId || att.segmentPath || 'hl7-embedded-report';
+    base = String(base).replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'hl7-embedded-report';
+    return /\.pdf$/i.test(base) ? base : base + '.pdf';
+  }
+
+  function closePdfViewer() {
+    var modal = $('pdfModal');
+    if (modal) modal.classList.remove('on');
+    if ($('pdfFrame')) $('pdfFrame').removeAttribute('src');
+    if (state.pdfUrl) { try { URL.revokeObjectURL(state.pdfUrl); } catch (e) {} }
+    state.pdfUrl = null; state.pdfCurrent = null;
+  }
+
+  function openPdf(att) {
+    closePdfViewer();
+    var bytes;
+    try { bytes = decodePdfBytes(att); }
+    catch (e) { toast(e.message || 'Could not decode the PDF'); return; }
+    if (!hasPdfSignature(bytes)) {
+      toast('Decoded data does not contain a PDF signature; the browser will still try to open it.');
+    }
+    var blob = new Blob([bytes], { type: 'application/pdf' });
+    state.pdfUrl = URL.createObjectURL(blob); state.pdfCurrent = att;
+    $('pdfTitle').textContent = att.observationText || att.observationId || 'Embedded PDF';
+    $('pdfMeta').textContent = [att.valuePath, att.encoding || 'no encoding', formatBytes(bytes.length)].filter(Boolean).join('  ·  ');
+    $('pdfFrame').src = state.pdfUrl;
+    $('pdfFallback').style.display = 'none';
+    $('pdfModal').classList.add('on');
+    setTimeout(function () { $('pdfClose').focus(); }, 0);
+  }
+
+  function openPdfNewTab() {
+    if (!state.pdfUrl) return;
+    var w = window.open(state.pdfUrl, '_blank', 'noopener');
+    if (!w) toast('The browser blocked the new tab.');
+  }
+
+  function savePdf() {
+    if (!state.pdfUrl || !state.pdfCurrent) return;
+    var a = document.createElement('a');
+    a.href = state.pdfUrl; a.download = safePdfFilename(state.pdfCurrent);
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+
+  /* ---------- multiple-message navigation ---------- */
+
+  function renderMessageNav() {
+    var box = $('messageNav'); box.textContent = '';
+    if (!state.messages || state.messages.length <= 1) { box.style.display = 'none'; return; }
+    box.style.display = '';
+    var head = document.createElement('div'); head.className = 'message-nav-head';
+    var title = document.createElement('span'); title.textContent = state.messages.length + ' HL7 messages detected';
+    var hint = document.createElement('span'); hint.textContent = 'Choose which message to inspect';
+    head.appendChild(title); head.appendChild(hint); box.appendChild(head);
+    var buttons = document.createElement('div'); buttons.className = 'message-nav-buttons';
+    state.messages.forEach(function (r, i) {
+      var b=document.createElement('button'); b.type='button'; b.className='message-choice';
+      b.setAttribute('aria-pressed', String(i === state.messageIndex));
+      b.textContent = (i+1) + ' · ' + (r.meta.messageType || 'unknown') + (r.meta.controlId ? ' · ' + r.meta.controlId : '');
+      b.addEventListener('click', function () { activateMessage(i); }); buttons.appendChild(b);
+    });
+    box.appendChild(buttons);
+  }
+
+  function activateMessage(index) {
+    if (!state.messages[index]) return;
+    state.messageIndex = index; state.res = state.messages[index];
+    state.autoExpand = state.res.segments.length <= AUTO_EXPAND_LIMIT;
+    if (!state.autoExpand && !state.res._largeNoteAdded) {
+      state.res.notes = state.res.notes.concat([state.res.segments.length + ' segments found. Segments start collapsed to keep things fast — open the ones you need, or choose Expand all.']);
+      state.res._largeNoteAdded = true;
+    }
+    state.expanded = Object.create(null); state.selected = null; state.segFilter = null; state.summary = false;
+    $('inspector').classList.remove('on');
+    closePdfViewer();
+    state.pdfAttachments = HL7.pdfAttachments(state.res);
+    state.pdfPaths = Object.create(null);
+    state.pdfAttachments.forEach(function (a) { state.pdfPaths[a.valuePath] = a; });
+    renderMessageNav(); renderMeta(); renderPdfAttachments(); renderChips(); renderNotices(); render();
+  }
+
+  /* ---------- interactions ---------- */
+
+  function toggle(node) {
+    var cur = isExpanded(node, '');
+    state.expanded[node.uid] = !cur;
+    render();
+    restoreFocus(node.uid);
+  }
+
+  function select(node) {
+    state.selected = node.uid;
+    document.querySelectorAll('.row.sel').forEach(function (r) { r.classList.remove('sel'); });
+    var el = document.querySelector('.row[data-uid="' + node.uid + '"]');
+    if (el) el.classList.add('sel');
+    showInspector(node);
+  }
+
+  function restoreFocus(uid) {
+    var el = document.querySelector('.row[data-uid="' + uid + '"]');
+    if (el) el.focus();
+  }
+
+  function setAll(open) {
+    if (!state.res) return;
+    state.expanded = Object.create(null);
+    (function walk(nodes) {
+      nodes.forEach(function (n) {
+        state.expanded[n.uid] = open;
+        walk(n.children);
+      });
+    })(state.res.segments);
+    render();
+  }
+
+  /* ---------- inspector ---------- */
+
+  function showInspector(node) {
+    var box = $('inspector');
+    box.classList.add('on');
+    box.style.setProperty('--seg-color', segColor(node.seg || node.path));
+
+    $('inspPath').textContent = node.path;
+    $('inspName').textContent = node.label + (node.datatype && node.datatype !== '*' ? '  (' + node.datatype + ')' : '');
+
+    var raw = node.value;
+    var rawSummary = edDisplaySummary(node);
+    var rawPreview = rawSummary || raw;
+    if (!rawSummary && rawPreview.length > 20000) rawPreview = rawPreview.slice(0, 20000) + '\n… [' + (rawPreview.length - 20000).toLocaleString() + ' more characters]';
+    setInspField('inspRaw', rawPreview === '' ? '(empty)' : rawPreview);
+
+    var dec = state.res ? HL7.decodeEscapes(raw, state.res.delims) : raw;
+    var decWrap = $('inspDecodedWrap');
+    if (dec !== raw && !rawSummary) {
+      decWrap.style.display = '';
+      var decPreview = dec.length > 20000 ? dec.slice(0, 20000) + '\n… [' + (dec.length - 20000).toLocaleString() + ' more characters]' : dec;
+      setInspField('inspDecoded', decPreview);
+    } else {
+      decWrap.style.display = 'none';
+    }
+
+    setInspField('inspNote', node.note || '\u2014');
+    renderHex($('inspHex'), raw);
+
+    var att = state.pdfPaths[node.path] || null;
+    $('inspPdfWrap').style.display = att ? '' : 'none';
+    $('inspPdfBtn').onclick = att ? function () { openPdf(att); } : null;
+  }
+
+  function setInspField(id, text) {
+    var el = $(id);
+    el.textContent = '';
+    el.appendChild(document.createTextNode(text));
+  }
+
+  function renderHex(target, text) {
+    target.textContent = '';
+    if (text === '') { target.textContent = '\u2014'; return; }
+    var slice = text.slice(0, 512);
+    for (var i = 0; i < slice.length; i++) {
+      var code = slice.charCodeAt(i);
+      var s = document.createElement('span');
+      s.className = code < 32 || code === 127 ? 'np' : 'b';
+      s.textContent = code.toString(16).toUpperCase().padStart(2, '0');
+      s.title = JSON.stringify(slice[i]) + ' (' + code + ')';
+      target.appendChild(s);
+      target.appendChild(document.createTextNode(' '));
+    }
+    if (text.length > 512) {
+      target.appendChild(document.createTextNode('\u2026 (' + (text.length - 512) + ' more)'));
+    }
+  }
+
+  /* ---------- meta strip ---------- */
+
+  function renderMeta() {
+    var box = $('meta');
+    box.textContent = '';
+    if (!state.res) { box.style.display = 'none'; return; }
+    box.style.display = '';
+    var m = state.res.meta, d = state.res.delims;
+
+    var cells = [
+      ['message type', m.messageType || '\u2014', m.structure ? 'structure ' + m.structure : (m.trigger || '')],
+      ['hl7 version', m.version || '\u2014', ''],
+      ['control id', m.controlId || '\u2014', ''],
+      ['sent', m.timestampHuman || m.timestamp || '\u2014', m.timestampHuman ? m.timestamp : ''],
+      ['from', (m.sendingApp || '\u2014'), m.sendingFac ? '@ ' + m.sendingFac : ''],
+      ['to', (m.receivingApp || '\u2014'), m.receivingFac ? '@ ' + m.receivingFac : ''],
+      ['processing', m.processingId || '\u2014',
+        m.processingId === 'P' ? 'production' : (m.processingId === 'T' ? 'training' : (m.processingId === 'D' ? 'debugging' : ''))],
+      ['segments', String(state.res.segments.length), state.res.lineCount + ' lines'],
+      ['dictionary', m.dictionaryVersion || 'Common HL7 v2.x', m.profileId ? 'profile ' + m.profileId : 'base version only'],
+      ['delimiters', d.field + d.comp + d.rep + d.esc + d.sub, 'fld cmp rep esc sub']
+    ];
+
+    cells.forEach(function (c) {
+      var cell = document.createElement('div');
+      cell.className = 'meta-cell';
+      var k = document.createElement('span');
+      k.className = 'k';
+      k.textContent = c[0];
+      var v = document.createElement('span');
+      v.className = 'v';
+      v.appendChild(document.createTextNode(c[1]));
+      if (c[2]) {
+        var f = document.createElement('span');
+        f.className = 'faint';
+        f.textContent = '  ' + c[2];
+        v.appendChild(f);
+      }
+      cell.appendChild(k);
+      cell.appendChild(v);
+      box.appendChild(cell);
+    });
+  }
+
+  /* ---------- segment chips ---------- */
+
+  function renderChips() {
+    var box = $('chips'); box.textContent = '';
+    if (!state.res) return;
+    var counts = state.res.counts || {}, names = Object.keys(counts);
+    if (!names.length) return;
+
+    var summary = document.createElement('button'); summary.className='chip'; summary.type='button';
+    summary.style.setProperty('--chip-color','var(--accent)'); summary.setAttribute('aria-pressed',String(state.summary)); summary.textContent='SUMMARY';
+    summary.addEventListener('click', function () { state.summary = !state.summary; if (state.summary) state.segFilter=null; renderChips(); render(); });
+    box.appendChild(summary);
+
+    var all = document.createElement('button'); all.className='chip'; all.type='button'; all.style.setProperty('--chip-color','var(--accent)');
+    all.setAttribute('aria-pressed', String(!state.summary && state.segFilter === null)); all.textContent='ALL';
+    all.addEventListener('click', function () { state.summary=false; state.segFilter=null; renderChips(); render(); }); box.appendChild(all);
+
+    names.forEach(function (n) {
+      var c=document.createElement('button'); c.className='chip'; c.type='button'; c.style.setProperty('--chip-color',segColor(n));
+      c.setAttribute('aria-pressed',String(!state.summary && state.segFilter===n)); c.appendChild(document.createTextNode(n));
+      if (counts[n] > 1) { var s=document.createElement('span'); s.className='n'; s.textContent='×'+counts[n]; c.appendChild(s); }
+      c.addEventListener('click', function () { state.summary=false; state.segFilter=(state.segFilter===n)?null:n; renderChips(); render(); }); box.appendChild(c);
+    });
+  }
+
+  /* ---------- notices ---------- */
+
+  function renderNotices() {
+    var box = $('notices'); box.textContent = '';
+    if (!state.res) return;
+    state.res.errors.forEach(function (e) { box.appendChild(notice(e, 'err')); });
+    (state.res.warnings || []).forEach(function (w) {
+      var d = document.createElement('div'); d.className = 'notice warn';
+      if (w.path) { var p=document.createElement('span'); p.className='notice-path'; p.textContent=w.path; d.appendChild(p); }
+      d.appendChild(document.createTextNode(w.message || String(w))); box.appendChild(d);
+    });
+    state.res.notes.forEach(function (n) { box.appendChild(notice(n, 'info')); });
+  }
+
+  function notice(text, cls) {
+    var d = document.createElement('div');
+    d.className = 'notice ' + cls;
+    d.textContent = text;
+    return d;
+  }
+
+  function updateCount(shown) {
+    var t = $('countTag');
+    if (!state.res) { t.textContent = ''; return; }
+    var total = state.res.segments.length;
+    t.textContent = shown === total ? total + ' segments' : shown + ' of ' + total + ' segments';
+  }
+
+  /* ---------- clipboard + toast ---------- */
+
+  function copy(text, msg) {
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); toast(msg); }
+      catch (e) { toast('Copy failed. Select the text manually.'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast(msg); }, fallback);
+    } else { fallback(); }
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('on'); }, 2000);
+  }
+
+  /* ---------- JSON export ---------- */
+
+  function toJson() {
+    if (!state.res) return '';
+    function strip(n) {
+      var o = { path: n.path, canonicalPath: n.canonicalPath || n.path, name: n.label, value: n.value };
+      if (n.datatype && n.datatype !== '*') o.datatype = n.datatype;
+      if (n.note) o.note = n.note;
+      if (n.children.length) o.children = n.children.map(strip);
+      return o;
+    }
+    return JSON.stringify({
+      meta: state.res.meta,
+      delimiters: state.res.delims,
+      notices: { errors: state.res.errors, warnings: state.res.warnings || [], notes: state.res.notes },
+      message: { index: state.messageIndex + 1, total: state.messages.length || 1 },
+      segments: state.res.segments.map(function (s) {
+        return { segment: s.seg, name: s.label, line: s.line, fields: s.children.map(strip) };
+      })
+    }, null, 2);
+  }
+
+  function downloadJson() {
+    var blob = new Blob([toJson()], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'hl7-parsed.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    toast('Saved hl7-parsed.json');
+  }
+
+  /* ---------- keyboard navigation ---------- */
+
+  function onKey(ev) {
+    var row = ev.target.closest ? ev.target.closest('.row') : null;
+    if (!row) return;
+    var idx = state.rows.findIndex(function (r) { return r.el === row; });
+    if (idx === -1) return;
+    var entry = state.rows[idx];
+
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      if (state.rows[idx + 1]) state.rows[idx + 1].el.focus();
+    } else if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      if (state.rows[idx - 1]) state.rows[idx - 1].el.focus();
+    } else if (ev.key === 'ArrowRight') {
+      ev.preventDefault();
+      if (entry.hasKids && !isExpanded(entry.node, state.search ? 'x' : '')) toggle(entry.node);
+      else if (state.rows[idx + 1]) state.rows[idx + 1].el.focus();
+    } else if (ev.key === 'ArrowLeft') {
+      ev.preventDefault();
+      if (entry.hasKids && isExpanded(entry.node, '')) toggle(entry.node);
+      else {
+        for (var i = idx - 1; i >= 0; i--) {
+          if (state.rows[i].depth < entry.depth) { state.rows[i].el.focus(); break; }
+        }
+      }
+    } else if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      select(entry.node);
+    }
+  }
+
+  /* ---------- parse driver ---------- */
+
+  function doParse() {
+    var raw = $('raw').value;
+    if (!raw.trim()) {
+      state.res = null; state.messages=[]; state.messageIndex=0; state.pdfAttachments=[]; state.pdfPaths=Object.create(null);
+      closePdfViewer(); renderMeta(); renderPdfAttachments(); renderChips(); renderNotices(); render(); renderMessageNav();
+      $('inspector').classList.remove('on'); toast('Paste a message first'); return;
+    }
+    var messages = HL7.parseMessages(raw);
+    messages.forEach(function (r, i) { assignUids(r, i); });
+    state.messages = messages;
+    if (!messages.length) { toast('Nothing to parse'); return; }
+    activateMessage(0);
+    $('exportJson').disabled = false; $('copyJson').disabled = false;
+    if (messages.length > 1) toast(messages.length + ' HL7 messages detected');
+  }
+
+  /* ---------- compare mode ---------- */
+
+  function segmentField(seg, n) {
+    if (!seg) return null;
+    var key=seg.seg+'-'+n;
+    for (var i=0;i<seg.children.length;i++) if ((seg.children[i].canonicalPath||seg.children[i].path)===key) return seg.children[i];
+    return null;
+  }
+  function segmentFieldValue(seg,n) { var f=segmentField(seg,n); return f?f.value:''; }
+  function segmentFieldComponentValue(seg,n,c) {
+    var f=segmentField(seg,n); if(!f) return '';
+    var target=seg.seg+'-'+n+'.'+c, stack=(f.children||[]).slice();
+    while(stack.length){ var x=stack.shift(), xp=String(x.canonicalPath||x.path); if(xp===target || xp.replace(/\[\d+\]/g,'')===target) return x.value; stack=stack.concat(x.children||[]); }
+    if(c===1 && f.value.indexOf('^')===-1) return f.value;
+    return '';
+  }
+
+  function compareSegmentBase(seg) {
+    if (seg.seg === 'OBX') {
+      // Match on OBX-3.1 identifier + OBX-4 sub-ID. Text/coding-system changes then show
+      // correctly as field changes instead of making the whole OBX look removed/added.
+      var id=segmentFieldComponentValue(seg,3,1) || segmentFieldValue(seg,3), sub=segmentFieldValue(seg,4);
+      if (id || sub) return 'OBX|' + id + '|' + sub;
+    }
+    // For other segment types, positional occurrence is generally safer because order/control identifiers may themselves be the changed field.
+    return seg.seg + '|#' + seg.instance;
+  }
+
+  function segmentMap(res) {
+    var out=[], seen={};
+    res.segments.forEach(function (seg) {
+      var base=compareSegmentBase(seg); seen[base]=(seen[base]||0)+1;
+      out.push({ key:base+'|@'+seen[base], base:base, seg:seg });
+    });
+    return out;
+  }
+
+  function fieldMap(seg) {
+    var m={}; if (!seg) return m;
+    seg.children.forEach(function (f) { m[f.canonicalPath||f.path]=f; }); return m;
+  }
+
+  function flattenChildren(field) {
+    var out={}; if (!field) return out;
+    (function walk(nodes){ nodes.forEach(function(n){ out[n.canonicalPath||n.path]=n; walk(n.children||[]); }); })(field.children||[]);
+    return out;
+  }
+
+  function unionOrdered(aKeys,bKeys) {
+    var seen={}, out=[];
+    aKeys.concat(bKeys).forEach(function(k){ if(!seen[k]){ seen[k]=1; out.push(k); } }); return out;
+  }
+
+  function compareStatus(a,b) {
+    if (!a && b) return 'added'; if (a && !b) return 'removed';
+    return String(a.value) === String(b.value) ? 'same' : 'changed';
+  }
+
+  function compareNodeDisplay(node) {
+    if (!node) return '';
+    if (node.opaquePayload) return '[encapsulated data · ' + node.value.length.toLocaleString() + ' characters]';
+    if (node.encapsulatedData) {
+      var info=HL7.edParts(node.value, node._compareDelims || HL7.DEFAULT_DELIMS);
+      var bits=['ED'];
+      if(info.typeOfData||info.dataSubtype) bits.push([info.typeOfData,info.dataSubtype].filter(Boolean).join('/'));
+      if(info.encoding) bits.push(info.encoding);
+      if(info.data) bits.push(info.data.length.toLocaleString()+' data characters');
+      return '['+bits.join(' · ')+']';
+    }
+    if (node.value.length > 12000) return node.value.slice(0,12000) + '\n… [' + (node.value.length-12000).toLocaleString() + ' more characters]';
+    return node.value;
+  }
+
+  function setDiffValue(el, node) {
+    el.className='diff-value';
+    if (!node || node.value==='') { el.className+=' empty'; el.textContent='empty'; }
+    else el.textContent=compareNodeDisplay(node);
+  }
+
+  function renderComponentDiff(parent, a, b, hideSame) {
+    var ma=flattenChildren(a), mb=flattenChildren(b), keys=unionOrdered(Object.keys(ma),Object.keys(mb));
+    var changed=keys.filter(function(k){ var aa=ma[k],bb=mb[k]; return compareStatus(aa,bb)!=='same'; });
+    if (!keys.length || (!changed.length && hideSame)) return;
+    var det=document.createElement('details'); det.className='diff-components';
+    var sum=document.createElement('summary'); sum.textContent=(changed.length||keys.length)+' component/subcomponent difference'+((changed.length||keys.length)===1?'':'s'); det.appendChild(sum);
+    keys.forEach(function(k){
+      var aa=ma[k], bb=mb[k], st=compareStatus(aa,bb); if(hideSame&&st==='same') return;
+      var row=document.createElement('div'); row.className='diff-component-row '+st;
+      var p=document.createElement('div'); p.className='diff-path'; p.textContent=(aa&&aa.path)||(bb&&bb.path)||k;
+      var n=document.createElement('div'); n.className='diff-name'; n.textContent=(aa&&aa.label)||(bb&&bb.label)||'';
+      var va=document.createElement('div'), vb=document.createElement('div'); setDiffValue(va,aa); setDiffValue(vb,bb);
+      var s=document.createElement('div'); s.className='diff-status '+st; s.textContent=st;
+      row.appendChild(p); row.appendChild(n); row.appendChild(va); row.appendChild(vb); row.appendChild(s); det.appendChild(row);
+    }); parent.appendChild(det);
+  }
+
+  function runCompare() {
+    var rawA=$('compareA').value, rawB=$('compareB').value, notices=$('compareNotices'); notices.textContent='';
+    $('compareResults').textContent=''; $('compareSummary').classList.remove('on'); $('compareSummary').textContent='';
+    if (!rawA.trim() || !rawB.trim()) { notices.appendChild(notice('Paste both Message A and Message B before comparing.','err')); return; }
+    var listA=HL7.parseMessages(rawA), listB=HL7.parseMessages(rawB);
+    if (!listA.length || !listB.length) { notices.appendChild(notice('One of the messages could not be parsed.','err')); return; }
+    if (listA.length>1) notices.appendChild(notice('Message A contains '+listA.length+' messages; Compare is using the first one.','info'));
+    if (listB.length>1) notices.appendChild(notice('Message B contains '+listB.length+' messages; Compare is using the first one.','info'));
+    var a=listA[0], b=listB[0], hideSame=$('hideUnchanged').checked;
+    if (a.errors && a.errors.length) a.errors.forEach(function(x){ notices.appendChild(notice('Message A: '+x,'err')); });
+    if (b.errors && b.errors.length) b.errors.forEach(function(x){ notices.appendChild(notice('Message B: '+x,'err')); });
+    if (a.warnings && a.warnings.length) notices.appendChild(notice('Message A has '+a.warnings.length+' parser warning'+(a.warnings.length===1?'':'s')+'.','info'));
+    if (b.warnings && b.warnings.length) notices.appendChild(notice('Message B has '+b.warnings.length+' parser warning'+(b.warnings.length===1?'':'s')+'.','info'));
+    [a,b].forEach(function(res){ res.segments.forEach(function(seg){ seg.children.forEach(function(f){ f._compareDelims=res.delims; (function mark(nodes){ nodes.forEach(function(n){ n._compareDelims=res.delims; mark(n.children||[]); }); })(f.children||[]); }); }); });
+    var aa=segmentMap(a), bb=segmentMap(b), mapA={},mapB={}; aa.forEach(function(x){mapA[x.key]=x.seg;}); bb.forEach(function(x){mapB[x.key]=x.seg;});
+    var segKeys=unionOrdered(aa.map(function(x){return x.key;}),bb.map(function(x){return x.key;}));
+    var totals={same:0,changed:0,added:0,removed:0}, rendered=0;
+    var results=$('compareResults');
+
+    segKeys.forEach(function(sk){
+      var sa=mapA[sk], sb=mapB[sk], fa=fieldMap(sa), fb=fieldMap(sb), fkeys=unionOrdered(Object.keys(fa),Object.keys(fb));
+      var visible=[];
+      fkeys.forEach(function(k){ var st=compareStatus(fa[k],fb[k]); totals[st]++; if(!hideSame||st!=='same') visible.push({k:k,st:st}); });
+      if(!visible.length) return;
+      rendered++;
+      var group=document.createElement('section'); group.className='diff-segment';
+      var head=document.createElement('div'); head.className='diff-seg-head';
+      var hn=document.createElement('div'); hn.className='diff-seg-name'; hn.textContent=(sa&&sa.path)||(sb&&sb.path)||sk;
+      var hk=document.createElement('div'); hk.className='diff-seg-key'; hk.textContent=sk.split('|@')[0]; head.appendChild(hn); head.appendChild(hk); group.appendChild(head);
+      visible.forEach(function(item){
+        var x=fa[item.k], y=fb[item.k], st=item.st;
+        var row=document.createElement('div'); row.className='diff-row '+st;
+        var p=document.createElement('div'); p.className='diff-path'; p.textContent=(x&&x.path)||(y&&y.path)||item.k;
+        var n=document.createElement('div'); n.className='diff-name'; n.textContent=(x&&x.label)||(y&&y.label)||'';
+        var va=document.createElement('div'), vb=document.createElement('div'); setDiffValue(va,x); setDiffValue(vb,y);
+        var ss=document.createElement('div'); ss.className='diff-status '+st; ss.textContent=st;
+        row.appendChild(p); row.appendChild(n); row.appendChild(va); row.appendChild(vb); row.appendChild(ss); group.appendChild(row);
+        if(st!=='same') renderComponentDiff(group,x,y,true);
+      }); results.appendChild(group);
+    });
+
+    if(!rendered) { var empty=document.createElement('div'); empty.className='diff-empty'; empty.textContent=hideSame?'No field differences found. Turn off “Hide unchanged fields” to view the complete comparison.':'No comparable fields found.'; results.appendChild(empty); }
+    var summary=$('compareSummary'); summary.classList.add('on');
+    [['A',a.meta.messageType||'—'],['B',b.meta.messageType||'—'],['Changed',totals.changed],['Added',totals.added],['Removed',totals.removed],['Same',totals.same]].forEach(function(pair){
+      var cell=document.createElement('div'); cell.className='compare-stat'; var k=document.createElement('span'); k.className='k'; k.textContent=pair[0]; var v=document.createElement('span'); v.className='v'; v.textContent=String(pair[1]); cell.appendChild(k); cell.appendChild(v); summary.appendChild(cell);
+    });
+  }
+
+  function switchMode(mode) {
+    var inspect=mode==='inspect';
+    $('inspectPane').classList.toggle('on',inspect); $('comparePane').classList.toggle('on',!inspect);
+    $('inspectTab').setAttribute('aria-selected',String(inspect)); $('compareTab').setAttribute('aria-selected',String(!inspect));
+    if(!inspect) $('inspector').classList.remove('on');
+  }
+
+  function readFileInto(file, target, parseAfter) {
+    if (!file) return;
+    var reader=new FileReader();
+    reader.onload=function(){ $(target).value=String(reader.result||''); if(parseAfter) doParse(); };
+    reader.onerror=function(){ toast('Could not read that file'); };
+    reader.readAsText(file);
+  }
+
+  /* ---------- wire up ---------- */
+
+  function init() {
+    $('inspectTab').addEventListener('click', function(){ switchMode('inspect'); });
+    $('compareTab').addEventListener('click', function(){ switchMode('compare'); });
+
+    $('parseBtn').addEventListener('click', doParse);
+    $('sampleBtn').addEventListener('click', function () { $('raw').value = HL7.SAMPLE; doParse(); });
+    $('clearBtn').addEventListener('click', function () {
+      $('raw').value=''; state.res=null; state.messages=[]; state.messageIndex=0; state.selected=null; state.summary=false;
+      state.pdfAttachments=[]; state.pdfPaths=Object.create(null); closePdfViewer();
+      $('inspector').classList.remove('on'); $('exportJson').disabled=true; $('copyJson').disabled=true;
+      renderMessageNav(); renderMeta(); renderPdfAttachments(); renderChips(); renderNotices(); render(); $('raw').focus();
+    });
+
+    $('openFileBtn').addEventListener('click', function(){ $('openFileInput').click(); });
+    $('openFileInput').addEventListener('change', function(ev){ readFileInto(ev.target.files[0],'raw',true); ev.target.value=''; });
+
+    $('raw').addEventListener('keydown', function (ev) { if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') { ev.preventDefault(); doParse(); } });
+
+    var searchTimer=null;
+    $('search').addEventListener('input', function (ev) { clearTimeout(searchTimer); var v=ev.target.value; searchTimer=setTimeout(function(){ state.search=v; render(); },120); });
+    $('hideEmpty').addEventListener('change', function (ev) { state.hideEmpty=ev.target.checked; render(); });
+    $('decodeEsc').addEventListener('change', function (ev) { state.decode=ev.target.checked; render(); });
+    $('expandAll').addEventListener('click', function () { state.summary=false; renderChips(); setAll(true); });
+    $('collapseAll').addEventListener('click', function () { state.summary=false; renderChips(); setAll(false); });
+    $('exportJson').addEventListener('click', downloadJson);
+    $('copyJson').addEventListener('click', function () { copy(toJson(), 'Copied JSON to clipboard'); });
+    $('inspClose').addEventListener('click', function () { $('inspector').classList.remove('on'); state.selected=null; document.querySelectorAll('.row.sel').forEach(function(r){r.classList.remove('sel');}); });
+    $('tree').addEventListener('keydown', onKey);
+
+    $('pdfClose').addEventListener('click', closePdfViewer);
+    $('pdfOpenNew').addEventListener('click', openPdfNewTab);
+    $('pdfSave').addEventListener('click', savePdf);
+    $('pdfModal').addEventListener('click', function (ev) { if (ev.target === $('pdfModal')) closePdfViewer(); });
+
+    // Drag/drop is local-only and never uploads the file.
+    ['dragenter','dragover'].forEach(function(type){ $('inspectPane').addEventListener(type,function(ev){ ev.preventDefault(); $('inspectPane').classList.add('file-drag-active'); }); });
+    ['dragleave','drop'].forEach(function(type){ $('inspectPane').addEventListener(type,function(ev){ ev.preventDefault(); $('inspectPane').classList.remove('file-drag-active'); }); });
+    $('inspectPane').addEventListener('drop', function(ev){ if(ev.dataTransfer&&ev.dataTransfer.files&&ev.dataTransfer.files[0]) readFileInto(ev.dataTransfer.files[0],'raw',true); });
+
+    $('compareBtn').addEventListener('click', runCompare);
+    $('hideUnchanged').addEventListener('change', function(){ if($('compareA').value.trim()&&$('compareB').value.trim()) runCompare(); });
+    $('swapCompare').addEventListener('click', function(){ var a=$('compareA').value; $('compareA').value=$('compareB').value; $('compareB').value=a; });
+    $('useInspectorA').addEventListener('click', function(){ $('compareA').value=state.res&&state.res.rawMessage?state.res.rawMessage:$('raw').value; });
+    $('useInspectorB').addEventListener('click', function(){ $('compareB').value=state.res&&state.res.rawMessage?state.res.rawMessage:$('raw').value; });
+    $('fileABtn').addEventListener('click', function(){ $('fileAInput').click(); });
+    $('fileBBtn').addEventListener('click', function(){ $('fileBInput').click(); });
+    $('fileAInput').addEventListener('change', function(ev){ readFileInto(ev.target.files[0],'compareA',false); ev.target.value=''; });
+    $('fileBInput').addEventListener('change', function(ev){ readFileInto(ev.target.files[0],'compareB',false); ev.target.value=''; });
+
+    document.addEventListener('keydown', function (ev) {
+      if ((ev.ctrlKey || ev.metaKey) && ev.key === 'f' && state.res && $('inspectPane').classList.contains('on')) { ev.preventDefault(); $('search').focus(); $('search').select(); }
+      if (ev.key === 'Escape' && $('pdfModal').classList.contains('on')) { closePdfViewer(); return; }
+      if (ev.key === 'Escape' && $('inspector').classList.contains('on')) $('inspClose').click();
+    });
+
+    render(); renderMessageNav();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else { init(); }
+})();
+
+</script>
+</body>
+</html>
