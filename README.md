@@ -4,6 +4,8 @@ Open `hl7-field-inspector.html` directly in a modern browser. It is a self-conta
 
 The app provides four tools: **Inspector**, **Compare**, **De-identify** and **PMS Preview**.
 
+> **Intended use:** HL7 Field Inspector is a development, interoperability and troubleshooting utility for examining HL7 messages. It is not intended to diagnose, treat, monitor or prevent disease, provide clinical decision support, or be used as the basis for patient-care decisions. Results, warnings, PMS previews and de-identification output should be independently reviewed before use in a production healthcare environment.
+
 ## Quick start
 
 1. Open `hl7-field-inspector.html` in your browser.
@@ -30,14 +32,14 @@ Both themes use stronger panel headers and borders, a distinct primary action, v
 
 ## Generic PMS preview
 
-The preview is labelled **“How this might look in a PMS.”** There is one generic view, with no vendor selector or vendor-specific rules. It reconstructs report content from OBR, OBX and NTE segments. It does not predict import acceptance, database patient matching, routing or notifications.
+The preview is labelled **“How this might look in a PMS.”** There is one generic view, with no vendor selector or vendor-specific rules. It reconstructs report content from OBR, OBX and NTE segments. **It is illustrative only: it does not emulate a real PMS and should not be used to determine how a production clinical system will process a message.** It does not predict import acceptance, database patient matching, routing or notifications.
 
 1. Paste a message, open a local file, load the sample, or use the active Inspector message.
 2. Choose **Build preview**.
 3. For batches, select **Message in batch**.
 4. Choose an **Order / report** to see that order's provider, service, observations, field values and checks.
 
-The top message verdict combines checks across all order/content groups in the selected message. Any failed check produces **Blocking issues**; warnings or unknown checks produce **Review needed**; otherwise the verdict is **No issues detected**. These labels describe the local checks, not an actual PMS import decision. The detailed check list and report panel describe the selected order.
+The top message verdict combines checks across all order/content groups in the selected message. Any failed check produces **Blocking issues**; warnings or unknown checks produce **Review needed**; otherwise the verdict is **No issues detected by these checks**. These labels describe the local checks, not an actual PMS import decision. The detailed check list and report panel describe the selected order.
 
 Order grouping follows PID/PV1 context, ORC boundaries and repeated OBR headers. An ORC can supply context to several OBR groups until the next ORC or patient/visit boundary. Observations before an OBR stay in a separate group with a missing-header finding. This is a practical result-message grouping model, not a full HL7 message-profile validator.
 

@@ -1160,7 +1160,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
   <section class="mode-pane pms-pane" id="pmsPane" role="tabpanel" aria-labelledby="pmsTab">
     <div class="pms-intro">
       <h2>How this might look in a PMS</h2>
-      <p>A generic PMS-style view of the report content in your message. Explore each order separately, with message checks to explain missing or uncertain details.</p>
+      <p>A generic PMS-style view of the report content in your message. Explore each order separately, with message checks to explain missing or uncertain details. This preview is illustrative only and does not emulate a real PMS.</p>
     </div>
 
     <section class="pms-input-card">
@@ -1229,7 +1229,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
       <div class="pms-sources" id="pmsSources"></div>
     </section>
 
-    <div class="pms-caution">This is how the content might look in a PMS. Actual display, import, patient matching and notifications depend on the receiving system and its configuration. Message checks describe the supplied HL7; they do not predict acceptance by a PMS.</div>
+    <div class="pms-caution">This preview is illustrative only. It does not emulate a real PMS and should not be used to determine how a production clinical system will process a message. Actual display, import, patient matching, routing and notifications depend on the receiving system and its configuration. Message checks describe the supplied HL7; they do not predict acceptance by a PMS or provide clinical decision support.</div>
   </section>
 
 </div>
@@ -3367,7 +3367,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
   function checkVerdict(checks) {
     if(checks.some(function(c){return c.status==='fail';})) return 'Blocking issues';
     if(checks.some(function(c){return c.status==='warn'||c.status==='unknown';})) return 'Review needed';
-    return 'No issues detected';
+    return 'No issues detected by these checks';
   }
 
   function genericPmsAnalysis(data) {
