@@ -1,6 +1,6 @@
 # HL7 Field Inspector
 
-Download and open `public\index.html` directly in a modern browser. It is a self-contained local app: no installation, build step, server, uploads or external dependencies are needed.
+Download `public\index.html` and open directly in a modern browser. It is a self-contained local app: no installation, build step, server, uploads or external dependencies are needed.
 
 The app provides four tools: **Inspector**, **Compare**, **De-identify** and **PMS Preview**.
 
