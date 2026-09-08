@@ -8,7 +8,7 @@ The app provides four tools: **Inspector**, **Compare**, **De-identify** and **P
 
 ## Quick start
 
-1. Open `hl7-field-inspector.html` in your browser.
+1. Open `index.html` in your browser.
 2. In **Inspector**, paste an HL7 message or choose **Open HL7 file**, then choose **Parse message**. Use **Load sample** to explore with synthetic data.
 3. Select a field to inspect its value and components. Use search, segment filters and batch navigation to narrow the view.
 4. Open **Compare** to compare two messages, **De-identify** to generate and review replacements, or **PMS Preview** to see an illustrative report. Each tool can take input from Inspector.
