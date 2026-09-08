@@ -22,13 +22,9 @@ The app provides four tools: **Inspector**, **Compare**, **De-identify** and **P
 - **Order-aware comparison:** observations are matched within aligned orders, reducing misleading differences when orders are rearranged.
 - **Expanded de-identification and review:** additional date and composite-field handling, reusable replacement sessions and a field-level before/after audit.
 
-This workspace copy contains the updates; the original files in Downloads have not been modified.
-
 ## Appearance
 
 Use **Theme** in the header to choose **Light**, **Dark** or **System**. System follows your operating system’s appearance and updates when it changes. Your explicit selection is remembered in this browser; if browser storage is unavailable, the control still works for the current page.
-
-Both themes use stronger panel headers and borders, a distinct primary action, visible focus rings, readable status colors and clearer table/field separation. Changing themes keeps your current inputs and results intact. Only the theme preference is stored; HL7 messages and de-identification sessions stay in memory.
 
 ## Generic PMS preview
 
