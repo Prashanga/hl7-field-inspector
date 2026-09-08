@@ -83,26 +83,8 @@ De-identification remains best effort. Unmapped fields and retained composite pa
 
 The field tree, practical version-aware dictionary, search, escape decoding, batch navigation, JSON export and local embedded PDF viewer remain available. **Open output in Inspector** transfers generated de-identification output; **Open message in Inspector** transfers the selected preview message.
 
-## Regression checks
-
-`regression.cjs` uses Node's built-in libraries and synthetic messages. From this folder run:
-
-```sh
-node regression.cjs
-```
-
-The tests cover verdict aggregation, order grouping and alignment, date handling, shared sessions, namespace-aware pseudonyms, composite specimen IDs, residual-field audits, invalid inputs, batches and removal of vendor-specific predictions. No dependencies are installed and no files are written by the tests.
-
-### Validation performed for this update
-
-- All 28 automated regression checks passed.
-- All four tools were exercised in light and dark mode, including theme changes preserving current input and results.
-- Theme preference persistence and System mode were checked, along with handling unavailable browser storage.
-- Desktop (1280 × 720) and mobile (390 × 844) layouts were checked for readability and page overflow.
-- Sampled rendered text passed contrast checks, keyboard focus indicators were checked, and no browser console warnings or errors were reported during the final check.
-
-These checks are not a complete accessibility audit or a guarantee of compatibility with every browser or HL7 profile.
 
 ## Attribution
 
 Based in part on HL7 Message Analyzer by Joe Bartlett. The original 2024 copyright and MIT licence notice are preserved in the HTML.
+
