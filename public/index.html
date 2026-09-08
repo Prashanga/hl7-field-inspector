@@ -28,48 +28,123 @@ SOFTWARE.
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HL7 Field Inspector</title>
 <meta name="description" content="Offline HL7 v2 message inspector. Expand any segment down to the subcomponent. Nothing leaves the page.">
+<script id="themeInit">
+// Only the appearance preference is persisted. HL7 data stays in memory.
+(function () {
+  var preference='system';
+  try { var saved=localStorage.getItem('hl7-inspector-theme'); if(['light','dark','system'].indexOf(saved)!==-1)preference=saved; } catch (_) {}
+  var dark=typeof matchMedia==='function'&&matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.themePreference=preference;
+  document.documentElement.dataset.theme=preference==='system'?(dark?'dark':'light'):preference;
+})();
+</script>
 <style>
 :root {
-  --page: #fafbfd;
+  color-scheme: light;
+  --page: #e6edf5;
   --panel: #ffffff;
-  --panel-2: #f4f6f8;
-  --rule: #d5dde5;
-  --rule-soft: #e9eef3;
-  --text: #1f2f3d;
-  --muted: #526678;
-  --dim: #7f919f;
-  --accent: #5c768c;
-  --accent-soft: #eef3f6;
-  --warn: #7f6231;
-  --warn-bg: #fff8e8;
-  --bad: #8f4c58;
-  --bad-bg: #fff0f2;
-  --good: #4d7c66;
-  --good-bg: #edf7f1;
+  --panel-2: #f0f4f9;
+  --header: #dce6f2;
+  --input: #ffffff;
+  --rule: #a9b9cc;
+  --rule-soft: #d0dbe8;
+  --control-border: #788ca5;
+  --text: #14253d;
+  --muted: #425774;
+  --dim: #536984;
+  --accent: #2454d3;
+  --accent-hover: #173da4;
+  --on-accent: #ffffff;
+  --accent-soft: #e4edff;
+  --focus: #2454d3;
+  --warn: #805000;
+  --warn-bg: #fff3cf;
+  --warn-border: #b68621;
+  --bad: #a21d3b;
+  --bad-bg: #ffe5ec;
+  --bad-border: #c05873;
+  --good: #116343;
+  --good-bg: #dcf5e8;
+  --good-border: #4b9474;
+  --mark: #ffdf77;
+  --mark-text: #453100;
+  --chip-ink: #ffffff;
+  --shadow: 0 3px 12px rgba(20, 37, 61, .07);
+  --overlay: rgba(3, 10, 24, .7);
 
-  --seg-MSH: #4f72a7;
-  --seg-PID: #a05a6a;
-  --seg-PV1: #4a72a8;
-  --seg-PV2: #4a72a8;
-  --seg-OBR: #8a6b33;
-  --seg-OBX: #2f796d;
-  --seg-ORC: #3b7990;
-  --seg-NTE: #61784e;
-  --seg-EVN: #6e739c;
-  --seg-MSA: #91616d;
-  --seg-ERR: #91616d;
-  --seg-AL1: #97684a;
-  --seg-DG1: #6173a0;
-  --seg-IN1: #617585;
-  --seg-GT1: #617585;
-  --seg-SPM: #4e7a59;
-  --seg-default: #5f7382;
+  --seg-MSH: #3c577f;
+  --seg-PID: #7a4451;
+  --seg-PV1: #385780;
+  --seg-PV2: #385780;
+  --seg-OBR: #695127;
+  --seg-OBX: #245c53;
+  --seg-ORC: #2d5c6d;
+  --seg-NTE: #4a5b3b;
+  --seg-EVN: #545777;
+  --seg-MSA: #6e4a53;
+  --seg-ERR: #6e4a53;
+  --seg-AL1: #734f38;
+  --seg-DG1: #4a577a;
+  --seg-IN1: #4a5965;
+  --seg-GT1: #4a5965;
+  --seg-SPM: #3b5d44;
+  --seg-default: #485763;
 
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --addr-w: 128px;
   --name-w: 250px;
 }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0a1120;
+  --panel: #152136;
+  --panel-2: #1c2b43;
+  --header: #243752;
+  --input: #101b2d;
+  --rule: #435975;
+  --rule-soft: #30445f;
+  --control-border: #6c85a4;
+  --text: #edf3ff;
+  --muted: #bdcbe0;
+  --dim: #a7bad3;
+  --accent: #91b9ff;
+  --accent-hover: #b8d2ff;
+  --on-accent: #0a1c3a;
+  --accent-soft: #243f67;
+  --focus: #91b9ff;
+  --warn: #ffcf70;
+  --warn-bg: #3b2d16;
+  --warn-border: #ab8134;
+  --bad: #ff9bb1;
+  --bad-bg: #3b2031;
+  --bad-border: #b3637d;
+  --good: #7ce3b1;
+  --good-bg: #133b31;
+  --good-border: #498c72;
+  --mark: #927128;
+  --mark-text: #fff7d6;
+  --chip-ink: #091426;
+  --shadow: 0 3px 14px rgba(0, 0, 0, .2);
+  --seg-MSH: #91b9ff;
+  --seg-PID: #f4a1ba;
+  --seg-PV1: #91b9ff;
+  --seg-PV2: #91b9ff;
+  --seg-OBR: #efc979;
+  --seg-OBX: #73dbc5;
+  --seg-ORC: #80cfe9;
+  --seg-NTE: #b0d896;
+  --seg-EVN: #b8aff2;
+  --seg-MSA: #f4a1ba;
+  --seg-ERR: #f4a1ba;
+  --seg-AL1: #efb48b;
+  --seg-DG1: #a5bafa;
+  --seg-IN1: #a5c3db;
+  --seg-GT1: #a5c3db;
+  --seg-SPM: #93d5a1;
+  --seg-default: #b1c5dc;
+}
+
 
 * { box-sizing: border-box; }
 
@@ -123,8 +198,8 @@ button, input, textarea { font: inherit; }
   align-items: center;
   gap: 7px;
   font-size: 12.5px;
-  color: #4f7764;
-  border: 1px solid #cfe2d7;
+  color: var(--good);
+  border: 1px solid var(--good-border);
   background: var(--good-bg);
   padding: 6px 10px;
   border-radius: 999px;
@@ -150,9 +225,9 @@ textarea#raw {
   tab-size: 4;
   box-shadow: 0 1px 2px rgba(35, 55, 70, 0.03);
 }
-textarea#raw::placeholder, input#search::placeholder { color: #a1adb6; }
+textarea#raw::placeholder, input#search::placeholder { color: var(--muted); }
 textarea#raw:focus, .btn:focus-visible, input:focus-visible, .chip:focus-visible, .row:focus-visible {
-  outline: 2px solid #b9c6d0;
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
 
@@ -161,22 +236,22 @@ textarea#raw:focus, .btn:focus-visible, input:focus-visible, .chip:focus-visible
   font-size: 13px;
   font-weight: 650;
   background: var(--panel);
-  color: #526575;
+  color: var(--muted);
   border: 1px solid var(--rule);
   border-radius: 7px;
   padding: 7px 12px;
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
-.btn:hover { background: var(--panel-2); border-color: #c7d0d8; color: var(--text); }
-.btn-primary { background: #f3f6f8; border-color: #cfd8df; color: #425765; }
-.btn-primary:hover { background: #eaf0f4; border-color: #bcc8d2; }
+.btn:hover { background: var(--panel-2); border-color: var(--rule); color: var(--text); }
+.btn-primary { background: var(--panel-2); border-color: var(--rule); color: var(--muted); }
+.btn-primary:hover { background: var(--panel-2); border-color: var(--rule); }
 .btn:disabled { opacity: 0.48; cursor: not-allowed; }
 
 .notices { margin-top: 14px; display: grid; gap: 7px; }
 .notice { font-size: 13px; padding: 9px 11px; border-radius: 7px; border: 1px solid var(--rule); background: var(--panel); color: var(--text); }
-.notice.err { border-color: #edcbd1; color: #8d4f59; background: var(--bad-bg); }
-.notice.info { border-color: #eadcb6; color: #80652f; background: var(--warn-bg); }
+.notice.err { border-color: var(--bad-border); color: var(--bad); background: var(--bad-bg); }
+.notice.info { border-color: var(--warn-border); color: var(--warn); background: var(--warn-bg); }
 
 .meta {
   margin-top: 20px;
@@ -220,15 +295,15 @@ input#search {
 .chip {
   font-family: var(--mono);
   font-size: 13px;
-  background: #fbfcfd;
-  border: 1px solid #cbd6df;
-  color: #536574;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  color: var(--muted);
   border-radius: 999px;
   padding: 5px 12px;
   cursor: pointer;
 }
-.chip:hover { background: #f5f7f9; color: #324658; border-color: #c3cdd6; }
-.chip[aria-pressed="true"] { background: var(--chip-color, var(--seg-default)); color: white; font-weight: 700; border-color: transparent; }
+.chip:hover { background: var(--panel-2); color: var(--text); border-color: var(--rule); }
+.chip[aria-pressed="true"] { background: var(--chip-color, var(--seg-default)); color: var(--chip-ink); font-weight: 700; border-color: transparent; }
 .chip .n { opacity: 0.82; margin-left: 4px; }
 
 .tree { margin-top: 10px; }
@@ -242,9 +317,9 @@ input#search {
   cursor: default;
   position: relative;
 }
-.row:hover { background: #f7f9fb; }
-.row.sel { background: #eef2f5; }
-.row.seg-row { margin-top: 14px; padding: 10px 10px 10px 0; border-top: none; align-items: center; background: #fbfcfd; border-radius: 8px; box-shadow: inset 4px 0 0 var(--seg-color, var(--accent)), inset 0 0 0 1px #e7edf2; }
+.row:hover { background: var(--panel-2); }
+.row.sel { background: var(--panel-2); }
+.row.seg-row { margin-top: 14px; padding: 10px 10px 10px 0; border-top: none; align-items: center; background: var(--panel); border-radius: 8px; box-shadow: inset 4px 0 0 var(--seg-color, var(--accent)), inset 0 0 0 1px var(--rule-soft); }
 .row.seg-row:first-child { margin-top: 6px; border-top: none; }
 .row.seg-row .name, .row.seg-row .val { line-height: 1.45; }
 .row .indent { grid-column: 1; display: flex; justify-content: flex-end; align-items: center; align-self: stretch; }
@@ -258,11 +333,11 @@ input#search {
   grid-column: 2;
   font-family: var(--mono);
   font-size: 13px;
-  color: #5c6d7a;
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border-left: 3px solid #c8d2dc;
+  border-left: 3px solid var(--rule);
   padding-left: 9px;
   font-weight: 500;
 }
@@ -271,18 +346,18 @@ input#search {
 .row.depth-3 .addr { padding-left: 33px; opacity: 1; }
 .row.depth-4 .addr { padding-left: 46px; opacity: 1; }
 
-.name { grid-column: 3; font-size: 13.5px; color: #3c4f5e; overflow-wrap: anywhere; }
-.row.seg-row .name { color: #182735; font-weight: 670; }
+.name { grid-column: 3; font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
+.row.seg-row .name { color: var(--text); font-weight: 670; }
 .valcol { grid-column: 4; min-width: 0; }
-.val { font-family: var(--mono); font-size: 13.5px; color: #203240; overflow-wrap: anywhere; white-space: pre-wrap; }
+.val { font-family: var(--mono); font-size: 13.5px; color: var(--text); overflow-wrap: anywhere; white-space: pre-wrap; }
 .val.empty { color: var(--dim); font-style: italic; font-family: var(--sans); font-size: 13px; }
-.row.seg-row .val { color: #445a6a; font-size: 12.5px; }
+.row.seg-row .val { color: var(--muted); font-size: 12.5px; }
 
-.dtype { font-family: var(--mono); font-size: 10px; color: #667680; background: #f6f8fa; border: 1px solid #d7e0e8; border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
-.note { display: block; font-size: 12.5px; color: #657786; margin-top: 3px; }
+.dtype { font-family: var(--mono); font-size: 10px; color: var(--muted); background: var(--panel-2); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
+.note { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
 .note .arrow { color: var(--accent); }
-.np { display: inline-block; font-family: var(--mono); font-size: 10.5px; background: var(--warn-bg); color: #8a6b31; border: 1px solid #ead8a9; border-radius: 4px; padding: 0 3px; margin: 0 1px; vertical-align: 1px; }
-mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2px; }
+.np { display: inline-block; font-family: var(--mono); font-size: 10.5px; background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); border-radius: 4px; padding: 0 3px; margin: 0 1px; vertical-align: 1px; }
+mark.hit { background: var(--warn-bg); color: var(--warn); border-radius: 3px; padding: 0 2px; }
 
 .rowtools { position: absolute; right: 6px; top: 2px; display: none; gap: 4px; }
 .row:hover .rowtools, .row.sel .rowtools { display: flex; }
@@ -295,7 +370,7 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
 .inspector {
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  background: rgba(255,255,255,0.98);
+  background: var(--panel);
   border-top: 1px solid var(--rule);
   padding: 12px 20px 14px;
   display: none;
@@ -308,7 +383,7 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
 .insp-path { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--seg-color, var(--accent)); }
 .insp-name { font-size: 14px; color: var(--text); }
 .insp-close { margin-left: auto; background: var(--panel); border: 1px solid var(--rule); color: var(--muted); font-size: 12px; border-radius: 6px; padding: 4px 9px; cursor: pointer; }
-.insp-close:hover { color: var(--text); background: #f5f7f9; }
+.insp-close:hover { color: var(--text); background: var(--panel-2); }
 .insp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 20px; }
 .insp-field .k { font-size: 10.5px; font-weight: 650; color: var(--muted); display: block; margin-bottom: 3px; }
 .insp-field .v { font-family: var(--mono); font-size: 13.5px; overflow-wrap: anywhere; max-height: 84px; overflow-y: auto; white-space: pre-wrap; }
@@ -318,7 +393,7 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
 .foot { margin-top: 42px; padding-top: 14px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 12.5px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .foot code { font-family: var(--mono); background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; color: var(--text); }
 
-.toast { position: fixed; left: 50%; transform: translateX(-50%) translateY(20px); bottom: 24px; background: #324755; border: 1px solid #324755; color: white; font-size: 13px; padding: 8px 14px; border-radius: 7px; opacity: 0; pointer-events: none; transition: opacity 180ms ease, transform 180ms ease; z-index: 40; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%) translateY(20px); bottom: 24px; background: var(--panel-2); border: 1px solid var(--rule); color: var(--text); font-size: 13px; padding: 8px 14px; border-radius: 7px; opacity: 0; pointer-events: none; transition: opacity 180ms ease, transform 180ms ease; z-index: 40; }
 .toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 @media (max-width: 860px) {
@@ -343,7 +418,7 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
   margin-top: 18px;
   padding: 4px;
   width: fit-content;
-  background: #f1f4f6;
+  background: var(--panel-2);
   border: 1px solid var(--rule);
   border-radius: 9px;
 }
@@ -351,7 +426,7 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
   appearance: none;
   border: 0;
   background: transparent;
-  color: #5b6d7b;
+  color: var(--muted);
   padding: 7px 15px;
   border-radius: 6px;
   font-size: 13px;
@@ -360,8 +435,8 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
 }
 .mode-tab:hover { color: var(--text); }
 .mode-tab[aria-selected="true"] {
-  background: #fff;
-  color: #223544;
+  background: var(--panel);
+  color: var(--text);
   box-shadow: 0 1px 2px rgba(32, 48, 60, 0.08);
 }
 .mode-pane { display: none; }
@@ -372,7 +447,7 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
   padding: 10px 11px;
   border: 1px solid var(--rule);
   border-radius: 8px;
-  background: #fbfcfd;
+  background: var(--panel);
 }
 .message-nav-head {
   display: flex;
@@ -380,44 +455,44 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 8px;
-  color: #455a6a;
+  color: var(--muted);
   font-size: 12.5px;
   font-weight: 650;
 }
 .message-nav-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
 .message-choice {
-  border: 1px solid #ccd6de;
-  background: #fff;
-  color: #506474;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: var(--muted);
   border-radius: 6px;
   padding: 5px 9px;
   cursor: pointer;
   font-size: 12px;
   font-family: var(--mono);
 }
-.message-choice:hover { background: #f5f7f9; color: #263b4b; }
+.message-choice:hover { background: var(--panel-2); color: var(--text); }
 .message-choice[aria-pressed="true"] {
-  background: #465e70;
-  border-color: #465e70;
-  color: #fff;
+  background: var(--panel-2);
+  border-color: var(--rule);
+  color: var(--text);
 }
 
-.notice.warn { border-color: #e6d5a9; color: #715c2e; background: #fffbef; }
+.notice.warn { border-color: var(--warn-border); color: var(--warn); background: var(--warn-bg); }
 .notice .notice-path { font-family: var(--mono); font-weight: 700; margin-right: 6px; }
 
 .summary-wrap { display: grid; gap: 12px; padding: 6px 0 20px; }
 .summary-card {
-  background: #fff;
-  border: 1px solid #dbe2e8;
+  background: var(--panel);
+  border: 1px solid var(--rule-soft);
   border-radius: 8px;
   overflow: hidden;
 }
 .summary-title {
   padding: 9px 12px;
-  background: #f8fafb;
-  border-bottom: 1px solid #e5eaee;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--rule-soft);
   font-weight: 700;
-  color: #263947;
+  color: var(--text);
   font-size: 13px;
 }
 .summary-row {
@@ -425,101 +500,101 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
   grid-template-columns: 120px 250px minmax(0, 1fr);
   gap: 12px;
   padding: 7px 12px;
-  border-top: 1px solid #f0f2f4;
+  border-top: 1px solid var(--rule-soft);
   align-items: start;
 }
 .summary-row:first-of-type { border-top: 0; }
-.summary-path { font-family: var(--mono); font-size: 12.5px; color: #526575; }
-.summary-name { color: #435767; font-size: 13px; }
-.summary-value { font-family: var(--mono); font-size: 13px; color: #1f303d; overflow-wrap: anywhere; white-space: pre-wrap; }
-.summary-empty { color: #8996a0; font-style: italic; font-family: var(--sans); }
+.summary-path { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.summary-name { color: var(--muted); font-size: 13px; }
+.summary-value { font-family: var(--mono); font-size: 13px; color: var(--text); overflow-wrap: anywhere; white-space: pre-wrap; }
+.summary-empty { color: var(--muted); font-style: italic; font-family: var(--sans); }
 .summary-result-line {
   display: grid;
   grid-template-columns: 110px minmax(180px, 0.9fr) minmax(220px, 1.5fr) 130px 70px;
   gap: 10px;
   padding: 7px 12px;
-  border-top: 1px solid #f0f2f4;
+  border-top: 1px solid var(--rule-soft);
   align-items: start;
   font-size: 12.5px;
 }
 .summary-result-line .mono { font-family: var(--mono); overflow-wrap: anywhere; }
-.summary-result-head { background: #fbfcfd; color: #657684; font-weight: 650; font-size: 11.5px; }
+.summary-result-head { background: var(--panel); color: var(--muted); font-weight: 650; font-size: 11.5px; }
 
 .compare-pane { padding-top: 20px; }
 .compare-intro { margin-bottom: 14px; }
-.compare-intro h2 { margin: 0 0 4px; font-size: 19px; color: #233643; }
+.compare-intro h2 { margin: 0 0 4px; font-size: 19px; color: var(--text); }
 .compare-intro p { margin: 0; color: var(--muted); font-size: 13px; max-width: 850px; }
 .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .compare-card {
-  background: #fff;
+  background: var(--panel);
   border: 1px solid var(--rule);
   border-radius: 8px;
   padding: 11px;
 }
 .compare-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.compare-card-title { font-weight: 700; color: #2d414f; }
+.compare-card-title { font-weight: 700; color: var(--text); }
 .compare-mini-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .mini-btn {
-  background: #fff;
-  border: 1px solid #d2dbe2;
-  color: #586b79;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  color: var(--muted);
   border-radius: 5px;
   padding: 4px 8px;
   cursor: pointer;
   font-size: 11.5px;
 }
-.mini-btn:hover { background: #f5f7f9; color: #293e4d; }
+.mini-btn:hover { background: var(--panel-2); color: var(--text); }
 .compare-card textarea {
   width: 100%; min-height: 210px; resize: vertical;
-  border: 1px solid #d4dde4; border-radius: 6px;
-  padding: 10px; background: #fcfdfe; color: #20313e;
+  border: 1px solid var(--rule); border-radius: 6px;
+  padding: 10px; background: var(--panel); color: var(--text);
   font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
 }
 .compare-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
 .compare-summary {
   display: none;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  border: 1px solid var(--rule); border-radius: 8px; background: #fff; overflow: hidden; margin-bottom: 12px;
+  border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); overflow: hidden; margin-bottom: 12px;
 }
 .compare-summary.on { display: grid; }
-.compare-stat { padding: 9px 11px; border-right: 1px solid #edf0f2; }
-.compare-stat .k { display: block; font-size: 10.5px; color: #71808b; text-transform: uppercase; letter-spacing: .04em; }
-.compare-stat .v { display: block; margin-top: 2px; font-family: var(--mono); font-size: 14px; color: #263946; font-weight: 700; }
+.compare-stat { padding: 9px 11px; border-right: 1px solid var(--rule-soft); }
+.compare-stat .k { display: block; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.compare-stat .v { display: block; margin-top: 2px; font-family: var(--mono); font-size: 14px; color: var(--text); font-weight: 700; }
 .compare-results { display: grid; gap: 10px; padding-bottom: 30px; }
-.diff-segment { background: #fff; border: 1px solid #dce3e8; border-radius: 8px; overflow: hidden; }
+.diff-segment { background: var(--panel); border: 1px solid var(--rule-soft); border-radius: 8px; overflow: hidden; }
 .diff-seg-head {
   display: grid; grid-template-columns: 150px minmax(0,1fr); gap: 10px;
-  padding: 8px 11px; background: #f8fafb; border-bottom: 1px solid #e5eaee;
+  padding: 8px 11px; background: var(--panel-2); border-bottom: 1px solid var(--rule-soft);
 }
-.diff-seg-name { font-family: var(--mono); font-weight: 750; color: #2d4352; }
-.diff-seg-key { color: #6a7a86; font-size: 12px; overflow-wrap: anywhere; }
+.diff-seg-name { font-family: var(--mono); font-weight: 750; color: var(--text); }
+.diff-seg-key { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .diff-row {
   display: grid;
   grid-template-columns: 145px 220px minmax(0,1fr) minmax(0,1fr) 76px;
-  gap: 10px; padding: 7px 11px; border-top: 1px solid #f0f2f4; align-items: start;
+  gap: 10px; padding: 7px 11px; border-top: 1px solid var(--rule-soft); align-items: start;
 }
 .diff-row:first-child { border-top: 0; }
-.diff-path { font-family: var(--mono); font-size: 12px; color: #536676; overflow-wrap: anywhere; }
-.diff-name { font-size: 12.5px; color: #415665; }
-.diff-value { font-family: var(--mono); font-size: 12.5px; color: #20313e; overflow-wrap: anywhere; white-space: pre-wrap; }
-.diff-value.empty { color: #8c98a1; font-family: var(--sans); font-style: italic; }
+.diff-path { font-family: var(--mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.diff-name { font-size: 12.5px; color: var(--muted); }
+.diff-value { font-family: var(--mono); font-size: 12.5px; color: var(--text); overflow-wrap: anywhere; white-space: pre-wrap; }
+.diff-value.empty { color: var(--muted); font-family: var(--sans); font-style: italic; }
 .diff-status { font-size: 10.5px; font-weight: 750; text-transform: uppercase; letter-spacing: .03em; }
-.diff-row.changed { background: #fffdf5; }
-.diff-row.added { background: #f6fbf8; }
-.diff-row.removed { background: #fff8f8; }
-.diff-status.changed { color: #80692d; }
-.diff-status.added { color: #4f765f; }
-.diff-status.removed { color: #8d5960; }
-.diff-status.same { color: #82909a; }
-.diff-components { border-top: 1px dashed #e3e8ec; background: #fcfdfe; }
-.diff-components summary { cursor: pointer; padding: 6px 11px 6px 155px; color: #617481; font-size: 11.5px; }
+.diff-row.changed { background: var(--warn-bg); }
+.diff-row.added { background: var(--good-bg); }
+.diff-row.removed { background: var(--bad-bg); }
+.diff-status.changed { color: var(--warn); }
+.diff-status.added { color: var(--good); }
+.diff-status.removed { color: var(--bad); }
+.diff-status.same { color: var(--muted); }
+.diff-components { border-top: 1px dashed var(--rule-soft); background: var(--panel); }
+.diff-components summary { cursor: pointer; padding: 6px 11px 6px 155px; color: var(--muted); font-size: 11.5px; }
 .diff-component-row {
   display: grid; grid-template-columns: 145px 220px minmax(0,1fr) minmax(0,1fr) 76px;
-  gap: 10px; padding: 5px 11px 5px 24px; border-top: 1px solid #f2f4f6; align-items: start;
+  gap: 10px; padding: 5px 11px 5px 24px; border-top: 1px solid var(--rule-soft); align-items: start;
 }
-.diff-empty { padding: 34px 20px; text-align: center; color: #687986; background: #fff; border: 1px solid var(--rule); border-radius: 8px; }
+.diff-empty { padding: 34px 20px; text-align: center; color: var(--muted); background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; }
 
-.file-drag-active { outline: 2px dashed #8fa4b3 !important; outline-offset: -6px; background: #fbfcfd; }
+.file-drag-active { outline: 2px dashed var(--focus) !important; outline-offset: -6px; background: var(--panel); }
 .hidden-input { display: none; }
 
 
@@ -529,7 +604,7 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
   display: none;
   border: 1px solid var(--rule);
   border-radius: 9px;
-  background: #fff;
+  background: var(--panel);
   overflow: hidden;
 }
 .attachments.on { display: block; }
@@ -539,10 +614,10 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
   justify-content: space-between;
   gap: 12px;
   padding: 10px 13px;
-  background: #fbfcfd;
+  background: var(--panel);
   border-bottom: 1px solid var(--rule-soft);
 }
-.attachments-title { font-weight: 680; color: #263846; }
+.attachments-title { font-weight: 680; color: var(--text); }
 .attachments-hint { font-size: 12px; color: var(--muted); }
 .attachment-list { display: grid; gap: 0; }
 .attachment-item {
@@ -554,17 +629,17 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
   border-top: 1px solid var(--rule-soft);
 }
 .attachment-item:first-child { border-top: 0; }
-.attachment-name { font-weight: 650; color: #273b49; }
-.attachment-meta { margin-top: 2px; font-family: var(--mono); font-size: 11.5px; color: #667887; overflow-wrap: anywhere; }
+.attachment-name { font-weight: 650; color: var(--text); }
+.attachment-meta { margin-top: 2px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
 .pdf-badge {
   display: inline-flex;
   align-items: center;
   margin-left: 7px;
   padding: 1px 5px;
-  border: 1px solid #d8c8c8;
+  border: 1px solid var(--bad-border);
   border-radius: 4px;
-  background: #fff7f7;
-  color: #845454;
+  background: var(--bad-bg);
+  color: var(--bad);
   font-family: var(--sans);
   font-size: 9.5px;
   font-weight: 700;
@@ -588,8 +663,8 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
   height: min(900px, 92vh);
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border: 1px solid #cbd4dc;
+  background: var(--panel);
+  border: 1px solid var(--rule);
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 18px 55px rgba(23, 34, 43, .22);
@@ -601,13 +676,13 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
   gap: 16px;
   padding: 10px 12px 10px 14px;
   border-bottom: 1px solid var(--rule);
-  background: #fbfcfd;
+  background: var(--panel);
 }
 .pdf-head-copy { min-width: 0; }
-.pdf-title { display: block; font-weight: 700; color: #203340; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pdf-title { display: block; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pdf-meta { display: block; margin-top: 2px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pdf-actions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
-.pdf-frame { width: 100%; flex: 1 1 auto; min-height: 0; border: 0; background: #eef1f3; }
+.pdf-frame { width: 100%; flex: 1 1 auto; min-height: 0; border: 0; background: var(--panel-2); }
 .pdf-fallback { display: none; padding: 28px; color: var(--muted); text-align: center; }
 .insp-pdf-action .btn { margin-top: 2px; }
 
@@ -632,6 +707,275 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
   .summary-result-line { grid-template-columns: 1fr; gap: 2px; }
 }
 
+
+/* ---------- HL7 de-identification ---------- */
+.deid-pane { padding-top: 20px; }
+.deid-intro { margin-bottom: 14px; }
+.deid-intro h2 { margin: 0 0 4px; font-size: 19px; color: var(--text); }
+.deid-intro p { margin: 0; color: var(--muted); font-size: 13px; max-width: 900px; }
+.deid-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.deid-card { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 11px; }
+.deid-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.deid-card-title { font-weight: 700; color: var(--text); }
+.deid-mini-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.deid-card textarea {
+  width: 100%; min-height: 250px; resize: vertical; border: 1px solid var(--rule); border-radius: 6px;
+  padding: 10px; background: var(--panel); color: var(--text); font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+}
+.deid-card textarea[readonly] { background: var(--panel-2); }
+.deid-options { margin-top: 14px; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.deid-options-head { padding: 9px 12px; background: var(--panel-2); border-bottom: 1px solid var(--rule-soft); font-weight: 700; color: var(--text); font-size: 13px; }
+.deid-option-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); }
+.deid-option { display: flex; gap: 9px; align-items: flex-start; padding: 10px 12px; border-right: 1px solid var(--rule-soft); border-bottom: 1px solid var(--rule-soft); cursor: pointer; }
+.deid-option input { margin-top: 3px; accent-color: var(--accent); }
+.deid-option strong { display: block; color: var(--text); font-size: 12.5px; }
+.deid-option span { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; line-height: 1.4; }
+.deid-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+.deid-summary { display: none; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); overflow: hidden; margin: 12px 0; }
+.deid-summary.on { display: grid; }
+.deid-stat { padding: 9px 11px; border-right: 1px solid var(--rule-soft); }
+.deid-stat .k { display: block; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.deid-stat .v { display: block; margin-top: 2px; font-family: var(--mono); font-size: 14px; color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
+.deid-caution { margin-top: 10px; font-size: 12px; color: var(--warn); background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 7px; padding: 9px 11px; }
+
+@media (max-width: 980px) { .deid-grid { grid-template-columns: 1fr; } }
+
+
+/* ---------- PMS simulator / compatibility checker ---------- */
+.pms-pane { padding-top: 20px; }
+.pms-intro { margin-bottom: 14px; }
+.pms-intro h2 { margin: 0 0 4px; font-size: 19px; color: var(--text); }
+.pms-intro p { margin: 0; color: var(--muted); font-size: 13px; max-width: 980px; }
+.pms-input-card, .pms-card {
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden;
+}
+.pms-input-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 11px; background: var(--panel-2); border-bottom: 1px solid var(--rule-soft); }
+.pms-input-title, .pms-card-title { font-weight: 700; color: var(--text); }
+.pms-mini-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.pms-input-card textarea {
+  display: block; width: 100%; min-height: 215px; resize: vertical; border: 0; padding: 11px;
+  background: var(--panel); color: var(--text); font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+}
+.pms-controls { display: flex; gap: 9px; align-items: end; flex-wrap: wrap; margin: 12px 0; }
+.pms-control { display: grid; gap: 4px; min-width: 245px; }
+.pms-control label { font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.pms-control select {
+  min-height: 34px; padding: 6px 9px; border: 1px solid var(--rule); border-radius: 7px; background: var(--panel); color: var(--text); font-size: 13px;
+}
+.pms-message-choice { min-width: 260px; display: none; }
+.pms-message-choice.on { display: grid; }
+.pms-overview { display: none; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); overflow: hidden; margin: 12px 0; }
+.pms-overview.on { display: grid; }
+.pms-stat { padding: 10px 11px; border-right: 1px solid var(--rule-soft); min-width: 0; }
+.pms-stat .k { display: block; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.pms-stat .v { display: block; margin-top: 3px; font-size: 13.5px; color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
+.pms-stat .subv { display: block; margin-top: 2px; color: var(--muted); font-size: 11.5px; font-weight: 500; }
+.pms-layout { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(330px,.9fr); gap: 12px; margin-top: 12px; }
+.pms-card-head { padding: 9px 12px; background: var(--panel-2); border-bottom: 1px solid var(--rule-soft); display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.pms-card-hint { font-size: 11.5px; color: var(--muted); }
+.pms-checks { display: grid; }
+.pms-check { display: grid; grid-template-columns: 78px minmax(150px, .85fr) minmax(0, 1.8fr) 118px; gap: 10px; padding: 8px 11px; border-top: 1px solid var(--rule-soft); align-items: start; }
+.pms-check:first-child { border-top: 0; }
+.pms-check.pass { background: var(--good-bg); }
+.pms-check.warn { background: var(--warn-bg); }
+.pms-check.fail { background: var(--bad-bg); }
+.pms-check.unknown { background: var(--panel); }
+.pms-status { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .035em; }
+.pms-check.pass .pms-status { color: var(--good); }
+.pms-check.warn .pms-status { color: var(--warn); }
+.pms-check.fail .pms-status { color: var(--bad); }
+.pms-check.unknown .pms-status { color: var(--muted); }
+.pms-check-name { font-size: 12.5px; font-weight: 680; color: var(--text); }
+.pms-check-detail { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.pms-evidence { justify-self: start; font-size: 9.5px; font-weight: 750; border-radius: 999px; padding: 2px 7px; border: 1px solid var(--rule); color: var(--muted); background: var(--panel); white-space: nowrap; }
+.pms-evidence.vendor { border-color: var(--good-border); color: var(--good); background: var(--good-bg); }
+.pms-evidence.standard { border-color: var(--rule); color: var(--muted); background: var(--panel-2); }
+.pms-evidence.empirical { border-color: var(--warn-border); color: var(--warn); background: var(--warn-bg); }
+.pms-evidence.heuristic { border-color: var(--rule-soft); color: var(--muted); background: var(--panel-2); }
+.pms-preview { padding: 12px; }
+.pms-preview-sheet { border: 1px solid var(--rule); border-radius: 7px; background: var(--panel); min-height: 260px; overflow: hidden; }
+.pms-preview-top { padding: 10px 12px; background: var(--panel-2); border-bottom: 1px solid var(--rule-soft); }
+.pms-preview-title { font-size: 14px; font-weight: 750; color: var(--text); }
+.pms-preview-meta { margin-top: 3px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+.pms-preview-body { padding: 12px; font-family: var(--mono); font-size: 12px; line-height: 1.55; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 520px; overflow-y: auto; }
+.pms-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); }
+.pms-field { padding: 8px 11px; border-right: 1px solid var(--rule-soft); border-top: 1px solid var(--rule-soft); }
+.pms-field .path { font-family: var(--mono); font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.pms-field .name { display: block; margin-top: 2px; font-size: 11.5px; color: var(--muted); }
+.pms-field .value { display: block; margin-top: 2px; font-family: var(--mono); font-size: 12.5px; color: var(--text); overflow-wrap: anywhere; white-space: pre-wrap; }
+.pms-sources { padding: 10px 12px; display: grid; gap: 7px; }
+.pms-source { display: grid; grid-template-columns: 105px minmax(0,1fr); gap: 8px; align-items: start; font-size: 11.5px; }
+.pms-source .kind { color: var(--muted); font-weight: 700; }
+.pms-source a { color: var(--muted); text-decoration: none; overflow-wrap: anywhere; }
+.pms-source a:hover { text-decoration: underline; }
+.pms-caution { margin-top: 12px; font-size: 12px; color: var(--warn); background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 7px; padding: 9px 11px; }
+.pms-empty { padding: 34px 18px; text-align: center; color: var(--muted); }
+
+@media (max-width: 980px) { .pms-layout { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .pms-check { grid-template-columns: 70px 1fr; gap: 4px 8px; }
+  .pms-check-detail { grid-column: 1 / -1; }
+  .pms-evidence { grid-column: 1 / -1; }
+  .pms-control, .pms-message-choice { min-width: min(100%, 300px); width: 100%; }
+}
+
+[hidden] { display: none !important; }
+.deid-session, .deid-review-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 14px 0; }
+.deid-session span { font-size: 12px; color: var(--muted); }
+.deid-review { border: 1px solid var(--rule); border-radius: 8px; padding: 16px; margin-top: 16px; background: var(--panel); }
+.deid-review-head h3 { margin: 0 auto 0 0; }
+.deid-review p { font-size: 12px; line-height: 1.5; }
+.deid-review select { padding: 7px; max-width: 100%; }
+.deid-review-scroll { overflow-x: auto; }
+.deid-review table { width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed; min-width: 660px; font-size: 12px; }
+.deid-review th, .deid-review td { border-bottom: 1px solid var(--rule); padding: 9px; vertical-align: top; overflow-wrap: anywhere; white-space: pre-wrap; }
+.deid-review td:nth-child(2), .deid-review td:nth-child(3) { font-family: var(--mono); }
+.deid-review th:first-child { width: 19%; }
+.deid-review td.needs-review { color: var(--warn); background: var(--warn-bg); }
+#pmsOrderSummary { font-size: 12px; color: var(--muted); }
+#pmsOrderChoice .pms-control { max-width: 100%; flex: 1; }
+#pmsOrderSelect { width: 100%; }
+.pms-preview-title, .pms-stat, .pms-control { min-width: 0; overflow-wrap: anywhere; }
+
+/* Shared component hierarchy, identical in both themes. */
+button, input, textarea, select { font: inherit; }
+html { accent-color: var(--accent); }
+.masthead { padding: 28px 0 22px; border-bottom: 2px solid var(--rule); }
+.masthead h1 { font-weight: 760; letter-spacing: -.035em; }
+.masthead .sub { max-width: 700px; line-height: 1.6; }
+.masthead-tools { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.theme-control { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 13px; font-weight: 650; }
+select, .theme-control select { background: var(--input); color: var(--text); border: 1px solid var(--control-border); border-radius: 7px; padding: 8px 12px; font-size: 13px; min-height: 38px; }
+.theme-control select { min-width: 100px; }
+.offline-badge { border-color: var(--good-border); color: var(--good); background: var(--good-bg); font-weight: 650; }
+.mode-tabs { width: 100%; gap: 6px; padding: 6px; margin: 22px 0 4px; background: var(--header); border-color: var(--rule); border-radius: 10px; }
+.mode-tab { padding: 11px 22px; color: var(--muted); font-size: 14px; font-weight: 700; }
+.mode-tab:hover { background: var(--panel); color: var(--text); }
+.mode-tab[aria-selected="true"] { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow); }
+.compare-intro h2, .deid-intro h2, .pms-intro h2 { font-size: 22px; line-height: 1.3; color: var(--text); letter-spacing: -.025em; margin-bottom: 7px; }
+.compare-intro p, .deid-intro p, .pms-intro p { font-size: 14px; line-height: 1.6; }
+.compare-intro, .deid-intro, .pms-intro { margin: 4px 0 20px; }
+.btn, .mini-btn, .insp-close, .message-choice, .chip, .rowtools button { border-color: var(--control-border); background: var(--panel); color: var(--text); }
+.btn { min-height: 38px; padding: 8px 14px; }
+.mini-btn { min-height: 32px; font-size: 12px; padding: 5px 10px; }
+.btn:hover, .mini-btn:hover, .insp-close:hover, .message-choice:hover, .chip:hover, .rowtools button:hover { color: var(--text); background: var(--header); border-color: var(--accent); }
+.btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 750; box-shadow: var(--shadow); }
+.btn-primary:hover { background: var(--accent-hover); color: var(--on-accent); border-color: var(--accent-hover); }
+.btn:disabled { opacity: 1; color: var(--dim); background: var(--panel-2); border-color: var(--rule); box-shadow: none; }
+.btn:disabled:hover { background: var(--panel-2); color: var(--dim); border-color: var(--rule); }
+.message-choice[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--chip-color, var(--seg-default)); color: var(--chip-ink); border-color: var(--chip-color, var(--seg-default)); }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible, .row:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+textarea#raw:focus, input#search:focus { outline: 3px solid var(--focus); outline-offset: 2px; }
+textarea#raw, .compare-card textarea, .deid-card textarea, .pms-input-card textarea, input#search { background: var(--input); color: var(--text); border-color: var(--control-border); font-size: 13px; line-height: 1.7; }
+textarea::placeholder, textarea#raw::placeholder, input#search::placeholder { color: var(--dim); opacity: 1; }
+textarea#raw { min-height: 175px; box-shadow: var(--shadow); }
+.pms-input-card textarea { min-height: 180px; }
+.deid-card textarea[readonly] { background: var(--panel-2); border-color: var(--good-border); }
+.input-head { margin-bottom: 10px; }
+.actions, .compare-actions, .deid-actions, .pms-controls { gap: 10px; }
+.toolbar { padding: 14px; background: var(--header); border: 1px solid var(--rule); border-radius: 9px; }
+.toggle { color: var(--text); font-size: 13px; }
+.toggle input, .deid-option input { width: 16px; height: 16px; flex-shrink: 0; }
+.compare-card, .deid-card, .pms-input-card, .pms-card, .summary-card, .diff-segment, .deid-options, .attachments, .meta, .deid-review { background: var(--panel); border-color: var(--rule); box-shadow: var(--shadow); }
+.compare-card, .deid-card { padding: 0 14px 14px; overflow: hidden; }
+.compare-card-head, .deid-card-head { margin: 0 -14px 14px; padding: 13px 14px; background: var(--header); border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+.pms-card-head, .pms-input-head, .summary-title, .deid-options-head, .diff-seg-head, .attachments-head, .pdf-head { background: var(--header); border-bottom-color: var(--rule); padding: 13px 16px; }
+.pms-card-title, .pms-input-title, .compare-card-title, .deid-card-title, .summary-title, .deid-options-head { font-size: 14px; font-weight: 750; color: var(--text); }
+.pms-card-hint { font-size: 12px; color: var(--muted); }
+.compare-summary, .deid-summary, .pms-overview { background: var(--panel); border-color: var(--rule); border-top: 3px solid var(--accent); box-shadow: var(--shadow); margin: 18px 0; }
+.compare-stat, .deid-stat, .pms-stat { padding: 13px 16px; border-color: var(--rule-soft); }
+.compare-stat .k, .deid-stat .k, .pms-stat .k, .meta-cell .k { font-size: 11px; font-weight: 700; color: var(--muted); }
+.compare-stat .v, .deid-stat .v, .pms-stat .v { color: var(--text); font-size: 15px; }
+.pms-layout { gap: 18px; }
+.pms-check { grid-template-columns: 58px minmax(0, 1fr) 105px; gap: 7px 12px; padding: 13px 16px; border-left: 4px solid transparent; }
+.pms-status { grid-column: 1; grid-row: 1 / 3; font-size: 11px; }
+.pms-check-name { grid-column: 2; grid-row: 1; color: var(--text); font-size: 13px; font-weight: 750; }
+.pms-check-detail { grid-column: 2; grid-row: 2; color: var(--text); font-size: 13px; line-height: 1.6; }
+.pms-evidence { grid-column: 3; grid-row: 1; white-space: normal; font-size: 10px; border-radius: 5px; }
+.pms-check.pass { background: var(--panel); border-left-color: var(--good-border); }
+.pms-check.warn, .diff-row.changed, .diff-component-row.changed { background: var(--warn-bg); border-left-color: var(--warn-border); }
+.pms-check.fail, .diff-row.removed, .diff-component-row.removed { background: var(--bad-bg); border-left-color: var(--bad-border); }
+.pms-check.unknown { background: var(--panel-2); border-left-color: var(--control-border); }
+.pms-status { color: var(--muted); }
+.pms-check.pass .pms-status, .diff-status.added { color: var(--good); }
+.pms-check.warn .pms-status, .diff-status.changed { color: var(--warn); }
+.pms-check.fail .pms-status, .diff-status.removed { color: var(--bad); }
+.pms-check.unknown .pms-status { color: var(--muted); }
+.diff-row.added, .diff-component-row.added { background: var(--good-bg); }
+.diff-row { padding: 12px 14px; border-left: 4px solid transparent; }
+.pms-evidence, .pms-evidence.standard, .pms-evidence.heuristic { background: var(--panel-2); border-color: var(--rule); color: var(--muted); }
+.pms-preview { padding: 20px; background: var(--panel-2); }
+.pms-preview-sheet { background: var(--panel); border-color: var(--control-border); box-shadow: var(--shadow); border-radius: 5px; }
+.pms-preview-top { background: var(--panel); border-bottom: 2px solid var(--accent); padding: 18px; }
+.pms-preview-title { font-size: 17px; color: var(--text); }
+.pms-preview-meta { color: var(--muted); font-size: 12px; margin-top: 8px; line-height: 1.7; }
+.pms-preview-body { color: var(--text); font-size: 13px; line-height: 1.8; padding: 18px; min-height: 240px; }
+.pms-field { padding: 12px 16px; }
+.pms-field .path { color: var(--accent); font-size: 11px; }
+.pms-field .name { color: var(--muted); }
+.pms-field .value { color: var(--text); font-size: 13px; margin-top: 5px; }
+.pms-source a { color: var(--accent); }
+.pms-sources { color: var(--muted); font-size: 13px; line-height: 1.7; padding: 14px 16px; }
+.pms-caution, .deid-caution, .notice.warn, .notice.info { color: var(--warn); border-color: var(--warn-border); background: var(--warn-bg); border-left-width: 4px; line-height: 1.7; }
+.notice.err { color: var(--bad); border-color: var(--bad-border); border-left-width: 4px; background: var(--bad-bg); }
+.deid-option { padding: 14px 16px; }
+.deid-option-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.deid-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.deid-stat { border-bottom: 1px solid var(--rule-soft); }
+.pms-fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.deid-option strong { color: var(--text); font-size: 13px; }
+.deid-option span { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.deid-session { padding: 14px; background: var(--header); border: 1px solid var(--rule); border-radius: 8px; }
+.deid-review { background: var(--panel); }
+.deid-review th { background: var(--header); color: var(--text); }
+.deid-review td { color: var(--text); }
+.deid-review tbody tr:nth-child(even) { background: var(--panel-2); }
+.deid-review td.needs-review { background: var(--warn-bg); color: var(--warn); border-left: 3px solid var(--warn-border); }
+.deid-review-head h3 { font-size: 18px; }
+.tree { background: var(--panel); padding: 10px 14px 18px; border: 1px solid var(--rule); border-radius: 9px; box-shadow: var(--shadow); }
+.row { border-bottom: 1px solid var(--rule-soft); border-radius: 0; padding-top: 10px; padding-bottom: 10px; }
+.row:hover { background: var(--panel-2); }
+.row.sel { background: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: -2px; }
+.row.seg-row { background: var(--header); border-radius: 6px; box-shadow: inset 4px 0 0 var(--seg-color, var(--accent)); border: 1px solid var(--rule); margin-top: 20px; }
+.row.seg-row .name { color: var(--text); }
+.row.seg-row .val { color: var(--muted); }
+.row.seg-row.sel { background: var(--accent-soft); }
+.addr { color: var(--muted); border-color: var(--rule); }
+.name, .val { color: var(--text); }
+.dtype { color: var(--muted); background: var(--panel-2); border-color: var(--rule); font-size: 11px; }
+.note { color: var(--muted); }
+.row:focus-within .rowtools { display: flex; }
+mark.hit { background: var(--mark); color: var(--mark-text); }
+.inspector { background: var(--panel); border-top: 3px solid var(--accent); box-shadow: 0 -8px 28px rgba(0,0,0,.25); }
+.pdf-modal { background: var(--overlay); }
+.pdf-dialog { background: var(--panel); border-color: var(--rule); }
+.pdf-frame { background: var(--panel-2); }
+.toast { color: var(--on-accent); background: var(--accent); border-color: var(--accent); font-weight: 650; }
+@media (max-width: 980px) {
+  .deid-option-grid, .pms-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .masthead { padding-top: 22px; gap: 16px; }
+  .masthead-tools { width: 100%; justify-content: space-between; gap: 10px; }
+  .offline-badge { font-size: 11px; padding: 6px 8px; }
+  .theme-control { gap: 6px; }
+  .theme-control select { min-width: 0; padding: 7px; }
+  .mode-tab { flex: 1; padding: 10px 6px; font-size: 12px; }
+  .mode-tabs { gap: 3px; padding: 4px; }
+  .input-head { flex-wrap: wrap; }
+  .pms-card-head { flex-wrap: wrap; }
+  .pms-check { grid-template-columns: 48px minmax(0,1fr); gap: 7px 10px; padding: 12px; }
+  .pms-evidence { grid-column: 2; grid-row: 3; }
+  .pms-preview { padding: 12px; }
+  .pms-preview-body, .pms-preview-top { padding: 14px; }
+  .tree { padding: 6px 8px 14px; }
+}
+@media (max-width: 560px) {
+  .deid-option-grid, .pms-fields { grid-template-columns: 1fr; }
+  .deid-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 </style>
 
 </head>
@@ -643,12 +987,19 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
       <h1>HL7 Field Inspector</h1>
       <p class="sub">Paste an HL7 v2 message and inspect segments, fields, repetitions, components and subcomponents.</p>
     </div>
-    <span class="offline-badge"><span class="dot"></span>Local only · no uploads</span>
+    <div class="masthead-tools">
+      <span class="offline-badge"><span class="dot"></span>Local only · no uploads</span>
+      <label class="theme-control" for="themeSelect">Theme
+        <select id="themeSelect" aria-label="Theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select>
+      </label>
+    </div>
   </header>
 
   <div class="mode-tabs" role="tablist" aria-label="HL7 tool mode">
     <button class="mode-tab" id="inspectTab" type="button" role="tab" aria-selected="true" aria-controls="inspectPane">Inspector</button>
     <button class="mode-tab" id="compareTab" type="button" role="tab" aria-selected="false" aria-controls="comparePane">Compare</button>
+    <button class="mode-tab" id="deidTab" type="button" role="tab" aria-selected="false" aria-controls="deidPane">De-identify</button>
+    <button class="mode-tab" id="pmsTab" type="button" role="tab" aria-selected="false" aria-controls="pmsPane">PMS Preview</button>
   </div>
 
   <section class="mode-pane on" id="inspectPane" role="tabpanel" aria-labelledby="inspectTab">
@@ -735,6 +1086,150 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
     <div class="notices" id="compareNotices"></div>
     <section class="compare-summary" id="compareSummary"></section>
     <div class="compare-results" id="compareResults"></div>
+  </section>
+
+
+  <section class="mode-pane deid-pane" id="deidPane" role="tabpanel" aria-labelledby="deidTab">
+    <div class="deid-intro">
+      <h2>De-identify an HL7 message</h2>
+      <p>Create a troubleshooting copy with common identifiers replaced or removed, then review changes and uncovered fields. Everything runs locally in this browser.</p>
+    </div>
+
+    <div class="deid-grid">
+      <div class="deid-card">
+        <div class="deid-card-head">
+          <span class="deid-card-title">Original message</span>
+          <div class="deid-mini-actions">
+            <button class="mini-btn" id="deidUseInspector" type="button">Use Inspector</button>
+            <button class="mini-btn" id="deidFileBtn" type="button">Open file</button>
+            <input class="hidden-input" id="deidFileInput" type="file" accept=".hl7,.txt,.log,text/plain">
+            <button class="mini-btn" id="deidSampleBtn" type="button">Load sample</button>
+          </div>
+        </div>
+        <textarea id="deidInput" spellcheck="false" placeholder="Paste the HL7 message you want to de-identify"></textarea>
+      </div>
+      <div class="deid-card">
+        <div class="deid-card-head">
+          <span class="deid-card-title">De-identified output</span>
+          <span class="eyebrow" id="deidOutputHint">Not generated yet</span>
+        </div>
+        <textarea id="deidOutput" spellcheck="false" readonly placeholder="The de-identified HL7 message will appear here"></textarea>
+      </div>
+    </div>
+
+    <section class="deid-options" aria-label="De-identification options">
+      <div class="deid-options-head">What to de-identify</div>
+      <div class="deid-option-grid">
+        <label class="deid-option"><input type="checkbox" id="deidPatient" checked><span><strong>Patient, order & specimen identifiers</strong><span>MRNs, names, addresses, phones, account/visit IDs, order/accession numbers, specimen IDs and related identifiers.</span></span></label>
+        <label class="deid-option"><input type="checkbox" id="deidRelated" checked><span><strong>Relatives, guarantors & insured person</strong><span>Next-of-kin, guarantor and insured-party identifying fields.</span></span></label>
+        <label class="deid-option"><input type="checkbox" id="deidProviders" checked><span><strong>Clinician/provider identities</strong><span>Provider IDs and names in PV1, ORC, OBR, OBX, DG1, PD1 and EVN.</span></span></label>
+        <label class="deid-option"><input type="checkbox" id="deidDates" checked><span><strong>Shift dates/times</strong><span>Shifts supported full dates, including date-valued observations, by one session offset. Partial or invalid dates are flagged for review.</span></span></label>
+        <label class="deid-option"><input type="checkbox" id="deidFreeText" checked><span><strong>Redact clinical free text</strong><span>Clears NTE comments, OBR clinical text and text-style OBX-5 values that may contain names or narrative PHI.</span></span></label>
+        <label class="deid-option"><input type="checkbox" id="deidAttachments" checked><span><strong>Remove embedded data / references</strong><span>Clears OBX-5 when the value type is ED or RP, including embedded PDFs and external document references.</span></span></label>
+      </div>
+    </section>
+
+    <div class="deid-session">
+      <label class="toggle"><input type="checkbox" id="deidReuse" checked>Reuse replacements and date shift across messages</label>
+      <button class="btn" id="deidNewSession" type="button">New session</button>
+      <span id="deidSessionHint" role="status">Session kept in memory until you start a new one or close this page.</span>
+    </div>
+    <div class="deid-actions">
+      <button class="btn btn-primary" id="deidBtn" type="button">De-identify message</button>
+      <button class="btn" id="deidCopy" type="button" disabled>Copy output</button>
+      <button class="btn" id="deidSave" type="button" disabled>Save .hl7</button>
+      <button class="btn" id="deidInspect" type="button" disabled>Open output in Inspector</button>
+      <button class="btn" id="deidClear" type="button">Clear</button>
+    </div>
+    <div class="notices" id="deidNotices"></div>
+    <section class="deid-summary" id="deidSummary"></section>
+    <section id="deidReview" class="deid-review" hidden>
+      <div class="deid-review-head"><h3>Review the output</h3>
+        <label for="deidReviewFilter">Show fields</label>
+        <select id="deidReviewFilter"><option value="review">Needs review</option><option value="changed">Changed</option><option value="all">All populated input fields</option></select>
+      </div>
+      <p id="deidReviewCount" role="status"></p>
+      <p>Before values contain original information. Uncovered fields and retained composite parts need your review; a changed field is not a guarantee that all identifying information was removed.</p>
+      <div class="deid-review-scroll"><table><thead><tr><th scope="col">Field</th><th scope="col">Before</th><th scope="col">After</th><th scope="col">Review / action</th></tr></thead><tbody id="deidReviewRows"></tbody></table></div>
+      <button class="btn" id="deidReviewMore" type="button" hidden>Show next 200 fields</button>
+    </section>
+    <div class="deid-caution">De-identification is best-effort, not a compliance certification. Free-text, custom Z-segments and locally defined fields can contain identifiers the generic HL7 dictionary cannot recognise; review the output before sharing it.</div>
+  </section>
+
+
+  <section class="mode-pane pms-pane" id="pmsPane" role="tabpanel" aria-labelledby="pmsTab">
+    <div class="pms-intro">
+      <h2>How this might look in a PMS</h2>
+      <p>A generic PMS-style view of the report content in your message. Explore each order separately, with message checks to explain missing or uncertain details.</p>
+    </div>
+
+    <section class="pms-input-card">
+      <div class="pms-input-head">
+        <span class="pms-input-title">HL7 result to preview</span>
+        <div class="pms-mini-actions">
+          <button class="mini-btn" id="pmsUseInspector" type="button">Use Inspector</button>
+          <button class="mini-btn" id="pmsFileBtn" type="button">Open file</button>
+          <input class="hidden-input" id="pmsFileInput" type="file" accept=".hl7,.txt,.log,text/plain">
+          <button class="mini-btn" id="pmsSampleBtn" type="button">Load sample</button>
+        </div>
+      </div>
+      <textarea id="pmsInput" spellcheck="false" placeholder="Paste an ORU / results HL7 message here"></textarea>
+    </section>
+
+    <div class="pms-controls">
+      <span class="offline-badge">Generic PMS preview</span>
+
+      <div class="pms-control pms-message-choice" id="pmsMessageChoice">
+        <label for="pmsMessageSelect">Message in batch</label>
+        <select id="pmsMessageSelect"></select>
+      </div>
+      <button class="btn btn-primary" id="pmsAnalyze" type="button">Build preview</button>
+      <button class="btn" id="pmsOpenInspector" type="button" disabled>Open message in Inspector</button>
+      <button class="btn" id="pmsClear" type="button">Clear</button>
+    </div>
+
+    <div class="notices" id="pmsNotices"></div>
+    <section class="pms-overview" id="pmsOverview"></section>
+
+    <div class="pms-controls" id="pmsOrderChoice" hidden>
+      <div class="pms-control"><label for="pmsOrderSelect">Order / report</label><select id="pmsOrderSelect"></select></div>
+      <span id="pmsOrderSummary" role="status"></span>
+    </div>
+    <div class="pms-layout">
+      <section class="pms-card">
+        <div class="pms-card-head">
+          <span class="pms-card-title">Message checks</span>
+          <span class="pms-card-hint" id="pmsProfileHint"></span>
+        </div>
+        <div class="pms-checks" id="pmsChecks"><div class="pms-empty">Build a preview to check the message and view its report content.</div></div>
+      </section>
+
+      <section class="pms-card">
+        <div class="pms-card-head">
+          <span class="pms-card-title">Possible report display</span>
+          <span class="pms-card-hint">Generic layout</span>
+        </div>
+        <div class="pms-preview" id="pmsPreview"><div class="pms-empty">The report text reconstructed from OBR / OBX / NTE will appear here.</div></div>
+      </section>
+    </div>
+
+    <section class="pms-card" style="margin-top:12px">
+      <div class="pms-card-head">
+        <span class="pms-card-title">Fields used in this order</span>
+        <span class="pms-card-hint">Useful when comparing a working and failing report</span>
+      </div>
+      <div class="pms-fields" id="pmsFields"><div class="pms-empty">No message analysed yet.</div></div>
+    </section>
+
+    <section class="pms-card" style="margin-top:12px">
+      <div class="pms-card-head">
+        <span class="pms-card-title">About this preview</span>
+        <span class="pms-card-hint">One generic PMS view</span>
+      </div>
+      <div class="pms-sources" id="pmsSources"></div>
+    </section>
+
+    <div class="pms-caution">This is how the content might look in a PMS. Actual display, import, patient matching and notifications depend on the receiving system and its configuration. Message checks describe the supplied HL7; they do not predict acceptance by a PMS.</div>
   </section>
 
 </div>
@@ -1634,7 +2129,7 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
     SEG: SEG, DT: DT, SUBDT: SUBDT, CODES: CODES, SAMPLE: SAMPLE,
     VERSION_PROFILES: VERSION_PROFILES, versionProfile: versionProfile,
     pdfAttachments: pdfAttachments, edParts: edParts,
-    DEFAULT_DELIMS: DEFAULT_DELIMS
+    validTemporal: validTemporal, DEFAULT_DELIMS: DEFAULT_DELIMS
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -2604,25 +3099,75 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
     return '';
   }
 
-  function compareSegmentBase(seg) {
-    if (seg.seg === 'OBX') {
-      // Match on OBX-3.1 identifier + OBX-4 sub-ID. Text/coding-system changes then show
-      // correctly as field changes instead of making the whole OBX look removed/added.
-      var id=segmentFieldComponentValue(seg,3,1) || segmentFieldValue(seg,3), sub=segmentFieldValue(seg,4);
-      if (id || sub) return 'OBX|' + id + '|' + sub;
+  function groupOrders(res) {
+    var groups=[], current=null, pid=null, pv1=null, orc=null, patientIndex=0;
+    function start() {
+      current={index:groups.length,patientIndex:patientIndex,pid:pid,pv1:pv1,orc:orc,obr:null,segments:[]};
+      groups.push(current); return current;
     }
-    // For other segment types, positional occurrence is generally safer because order/control identifiers may themselves be the changed field.
-    return seg.seg + '|#' + seg.instance;
+    res.segments.forEach(function(seg){
+      if(seg.seg==='PID') { pid=seg; pv1=null; orc=null; current=null; patientIndex++; return; }
+      if(seg.seg==='PV1') { pv1=seg; current=null; orc=null; return; }
+      if(seg.seg==='MSH'||seg.seg==='BHS'||seg.seg==='BTS'||seg.seg==='FHS'||seg.seg==='FTS') {current=null; return;}
+      if(seg.seg==='ORC') { orc=seg; start(); current.segments.push(seg); return; }
+      if(seg.seg==='OBR') {
+        if(!current || current.obr || current.segments.some(function(x){return x.seg==='OBX';})) start();
+        current.obr=seg; current.segments.push(seg); return;
+      }
+      if(seg.seg==='OBX' && !current) start();
+      if(current) current.segments.push(seg);
+    });
+    return groups;
   }
 
-  function segmentMap(res) {
-    var out=[], seen={};
-    res.segments.forEach(function (seg) {
-      var base=compareSegmentBase(seg); seen[base]=(seen[base]||0)+1;
-      out.push({ key:base+'|@'+seen[base], base:base, seg:seg });
+  function orderMatchValue(group, field, d) {
+    var value=segmentFieldValue(group.obr,field) || (field!==4 ? segmentFieldValue(group.orc,field) : '');
+    if(!value || value==='""') return '';
+    return group.patientIndex+'|'+JSON.stringify(value.split(d.comp));
+  }
+
+  function alignOrderGroups(a,b) {
+    var ga=groupOrders(a), gb=groupOrders(b), ka=[], kb=[], reasons=[], next=0;
+    function match(i,j,reason) { var key='Order '+(++next); ka[i]=key; kb[j]=key; reasons.push(key+': '+reason); }
+    [3,2,4].forEach(function(field){
+      var ma=Object.create(null), mb=Object.create(null);
+      ga.forEach(function(g,i){var k=orderMatchValue(g,field,a.delims); if(k&&!ka[i]) (ma[k]||(ma[k]=[])).push(i);});
+      gb.forEach(function(g,i){var k=orderMatchValue(g,field,b.delims); if(k&&!kb[i]) (mb[k]||(mb[k]=[])).push(i);});
+      Object.keys(ma).forEach(function(k){if(ma[k].length===1&&mb[k]&&mb[k].length===1) match(ma[k][0],mb[k][0],field===4?'unique service match (heuristic)':'matching '+(field===3?'filler':'placer')+' order identifier');});
+    });
+    // Pair unmatched orders positionally only when the remaining counts agree.
+    // This keeps changed identifiers inspectable; the UI explicitly labels the uncertainty.
+    var ua=ga.map(function(_,i){return i;}).filter(function(i){return !ka[i];});
+    var ub=gb.map(function(_,i){return i;}).filter(function(i){return !kb[i];});
+    if(ua.length===ub.length) ua.forEach(function(i,n){var j=ub[n]; if(ga[i].patientIndex===gb[j].patientIndex) match(i,j,'positional fallback — verify these orders belong together');});
+    ga.forEach(function(_,i){if(!ka[i])ka[i]='A-only order '+(i+1);});
+    gb.forEach(function(_,i){if(!kb[i])kb[i]='B-only order '+(i+1);});
+    return {a:ka,b:kb,reasons:reasons};
+  }
+
+  function compareSegmentBase(seg, d) {
+    if(seg.seg==='OBX') {
+      var p=segmentFieldValue(seg,3).split(d.comp), sub=segmentFieldValue(seg,4);
+      if(p[0]||sub) return 'OBX|'+JSON.stringify([p[0]||'',p[2]||'',sub]);
+    }
+    return seg.seg;
+  }
+
+  function segmentMap(res, orderKeys) {
+    var membership=new Map(), groups=groupOrders(res), seen=Object.create(null), out=[], lastObservation=Object.create(null);
+    groups.forEach(function(g,i){g.segments.forEach(function(seg){membership.set(seg,(orderKeys&&orderKeys[i])||'Order '+(i+1));});});
+    res.segments.forEach(function(seg){
+      var scope=membership.get(seg)||'Message', base=scope+' | '+compareSegmentBase(seg,res.delims);
+      if(seg.seg==='NTE'&&lastObservation[scope]) base=lastObservation[scope]+' | NTE';
+      seen[base]=(seen[base]||0)+1;
+      var key=base+'|@'+seen[base];
+      if(seg.seg==='OBX') lastObservation[scope]=key;
+      else if(seg.seg==='OBR'||seg.seg==='ORC') delete lastObservation[scope];
+      out.push({key:key,base:base,seg:seg});
     });
     return out;
   }
+
 
   function fieldMap(seg) {
     var m={}; if (!seg) return m;
@@ -2697,7 +3242,9 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
     if (a.warnings && a.warnings.length) notices.appendChild(notice('Message A has '+a.warnings.length+' parser warning'+(a.warnings.length===1?'':'s')+'.','info'));
     if (b.warnings && b.warnings.length) notices.appendChild(notice('Message B has '+b.warnings.length+' parser warning'+(b.warnings.length===1?'':'s')+'.','info'));
     [a,b].forEach(function(res){ res.segments.forEach(function(seg){ seg.children.forEach(function(f){ f._compareDelims=res.delims; (function mark(nodes){ nodes.forEach(function(n){ n._compareDelims=res.delims; mark(n.children||[]); }); })(f.children||[]); }); }); });
-    var aa=segmentMap(a), bb=segmentMap(b), mapA={},mapB={}; aa.forEach(function(x){mapA[x.key]=x.seg;}); bb.forEach(function(x){mapB[x.key]=x.seg;});
+    var alignment=alignOrderGroups(a,b);
+    if(alignment.reasons.length) notices.appendChild(notice('Order alignment: '+alignment.reasons.join('; '),'info'));
+    var aa=segmentMap(a,alignment.a), bb=segmentMap(b,alignment.b), mapA={},mapB={}; aa.forEach(function(x){mapA[x.key]=x.seg;}); bb.forEach(function(x){mapB[x.key]=x.seg;});
     var segKeys=unionOrdered(aa.map(function(x){return x.key;}),bb.map(function(x){return x.key;}));
     var totals={same:0,changed:0,added:0,removed:0}, rendered=0;
     var results=$('compareResults');
@@ -2731,10 +3278,520 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
     });
   }
 
+  var deidLastOutput = '';
+
+
+
+  /* ---------- PMS simulator / compatibility checker ---------- */
+
+  var pmsState = { results: [], index: 0, orderIndex: 0, currentRaw: '' };
+
+  var DIAG_CODES = {
+    AU:'Audiology', BG:'Blood Gases', BLB:'Blood Bank', CG:'Cytogenetics', CH:'Chemistry', CP:'Cytopathology', CT:'CAT Scan', CTH:'Cardiac Catheterization', CUS:'Cardiac Ultrasound',
+    EC:'Electrocardiac', EN:'Electroneuro', GE:'Genetics', HM:'Haematology', ICU:'ICU Monitoring', IMG:'Diagnostic Imaging', IMM:'Immunology', LAB:'Laboratory', MB:'Microbiology',
+    MCB:'Mycobacteriology', MYC:'Mycology', NMR:'Nuclear Magnetic Resonance', NMS:'Nuclear Medicine Scan', NRS:'Nursing Services Measures', OSL:'Outside Lab', OT:'Occupational Therapy',
+    OTH:'Other', OUS:'OB Ultrasound', PAR:'Parasitology', PAT:'Pathology', PF:'Pulmonary Function', PHR:'Pharmacy', PHY:'Physician', PT:'Physical Therapy', RAD:'Radiology', RC:'Respiratory Care',
+    RT:'Radiation Therapy', RUS:'Radiology Ultrasound', RX:'Radiograph', SP:'Surgical Pathology', SR:'Serology', TX:'Toxicology', URN:'Urinalysis', VR:'Virology', VUS:'Vascular Ultrasound', XRC:'Cineradiograph'
+  };
+
+  function pmsSegments(res) {
+    var d=res.delims||HL7.DEFAULT_DELIMS;
+    return String(res.rawMessage||'').split('\r').filter(Boolean).map(function(line){
+      var parts=line.split(d.field), name=String(parts[0]||'').trim().toUpperCase();
+      return {name:name, parts:parts, line:line};
+    });
+  }
+
+  function pmsField(seg, number, d) {
+    if(!seg) return '';
+    if(seg.name==='MSH') {
+      if(number===1) return d.field;
+      return String(seg.parts[number-1]||'');
+    }
+    return String(seg.parts[number]||'');
+  }
+
+  function pmsFirst(segs,name) { for(var i=0;i<segs.length;i++) if(segs[i].name===name) return segs[i]; return null; }
+  function pmsAll(segs,name) { return segs.filter(function(s){return s.name===name;}); }
+  function pmsComp(value,n,d) { return String(value||'').split(d.comp)[n-1]||''; }
+  function pmsClean(value,d) { return HL7.decodeEscapes ? HL7.decodeEscapes(String(value||''),d) : String(value||''); }
+  function pmsDisplayName(xpn,d) {
+    var p=String(xpn||'').split(d.comp), family=p[0]||'', given=p[1]||'', middle=p[2]||'', prefix=p[4]||'';
+    return [prefix,given,middle,family].filter(Boolean).join(' ') || String(xpn||'');
+  }
+  function pmsProviderKey(xcn,d) {
+    var p=String(xcn||'').split(d.comp);
+    return {raw:String(xcn||''), id:p[0]||'', family:p[1]||'', given:p[2]||'', prefix:p[5]||'', display:[p[5],p[2],p[1]].filter(Boolean).join(' ') || String(xcn||'')};
+  }
+  function pmsNormProvider(xcn,d) {
+    var p=pmsProviderKey(xcn,d);
+    return [p.id,p.family,p.given].join('|').toLowerCase().replace(/[^a-z0-9|]/g,'');
+  }
+  function pmsTsDate(value) {
+    var v=String(value||'').split(/[^0-9]/)[0];
+    if(v.length<8) return String(value||'');
+    return v.slice(0,4)+'-'+v.slice(4,6)+'-'+v.slice(6,8);
+  }
+  function pmsMessageType(ms9,d) { var p=String(ms9||'').split(d.comp); return [p[0]||'',p[1]||''].filter(Boolean).join('^') || String(ms9||''); }
+  function pmsTestName(obr4,d) { var p=String(obr4||'').split(d.comp); return p[1]||p[0]||String(obr4||''); }
+  function pmsObservationName(obx3,d) { var p=String(obx3||'').split(d.comp); return p[1]||p[0]||String(obx3||''); }
+
+  function pmsProfileData(res, group) {
+    var d=res.delims||HL7.DEFAULT_DELIMS;
+    var source=group ? [res.segments.find(function(s){return s.seg==='MSH';}),group.pid,group.pv1,group.orc].filter(Boolean).concat(group.segments) : res.segments;
+    source=source.filter(function(seg,i){return source.indexOf(seg)===i;});
+    var scoped={rawMessage:source.map(function(s){return s.value;}).join('\r'),delims:d};
+    var segs=pmsSegments(scoped), msh=pmsFirst(segs,'MSH'), pid=pmsFirst(segs,'PID'), pv1=pmsFirst(segs,'PV1'), orc=pmsFirst(segs,'ORC'), obr=pmsFirst(segs,'OBR');
+    var obrs=pmsAll(segs,'OBR'), obxs=pmsAll(segs,'OBX'), ntes=pmsAll(segs,'NTE');
+    var pid5=pmsField(pid,5,d), pid3=pmsField(pid,3,d), dob=pmsField(pid,7,d);
+    var obr4=pmsField(obr,4,d), obr16=pmsField(obr,16,d), obr24=pmsField(obr,24,d).trim().toUpperCase();
+    var pv17=pmsField(pv1,7,d), pv18=pmsField(pv1,8,d), orc12=pmsField(orc,12,d);
+    var meaningful=function(v){return !!v && v!=='""';};
+    var embedded=obxs.filter(function(s){return /^(ED|RP)$/.test(pmsField(s,2,d).toUpperCase())&&meaningful(pmsField(s,5,d));});
+    var loinc=obxs.filter(function(s){return /^(LN|LOINC)$/i.test(pmsComp(pmsField(s,3,d),3,d));});
+    var abnormal=obxs.filter(function(s){return pmsField(s,8,d).split(d.rep).some(function(flag){return !!flag&&!/^(N|"")$/.test(flag);});});
+    var paths=source.map(function(s){return s.path;});
+    return {d:d,segs:segs,msh:msh,pid:pid,pv1:pv1,orc:orc,obr:obr,obrs:obrs,obxs:obxs,ntes:ntes,
+      messageType:pmsMessageType(pmsField(msh,9,d),d),version:pmsComp(pmsField(msh,12,d),1,d),sender:pmsComp(pmsField(msh,3,d),1,d),
+      pid3:pid3,pid5:pid5,patientName:pmsDisplayName(pid5,d),dob:dob,obr4:obr4,testName:pmsTestName(obr4,d),obr16:obr16,
+      provider:pmsProviderKey(meaningful(obr16)?obr16:(meaningful(orc12)?orc12:''),d),obr24:obr24,obr24Name:DIAG_CODES[obr24]||'',pv17:pv17,pv18:pv18,orc12:orc12,
+      providerMismatch:meaningful(obr16)&&meaningful(orc12)&&pmsNormProvider(obr16,d)!==pmsNormProvider(orc12,d),
+      embeddedCount:embedded.length,loincCount:loinc.length,abnormalCount:abnormal.length,
+      parseErrors:(res.errors||[]).slice(),parseWarnings:(res.warnings||[]).filter(function(w){return !group||paths.some(function(path){return w.path===path||w.path.indexOf(path+'-')===0;});}),
+      fieldPaths:{OBR:group&&group.obr?group.obr.path:'OBR',ORC:group&&group.orc?group.orc.path:'ORC',PID:group&&group.pid?group.pid.path:'PID',PV1:group&&group.pv1?group.pv1.path:'PV1'}
+    };
+  }
+
+  function pmsCheck(status,name,detail,evidence,kind) { return {status:status,name:name,detail:detail,evidence:evidence||'Message check',kind:kind||'standard'}; }
+
+  function checkVerdict(checks) {
+    if(checks.some(function(c){return c.status==='fail';})) return 'Blocking issues';
+    if(checks.some(function(c){return c.status==='warn'||c.status==='unknown';})) return 'Review needed';
+    return 'No issues detected';
+  }
+
+  function genericPmsAnalysis(data) {
+    var checks=[], has=function(v){return !!v&&v!=='""';};
+    checks.push(pmsCheck(data.parseErrors.length?'fail':'pass','HL7 structure',data.parseErrors.length?data.parseErrors.join('; '):'Message parsed by this viewer. This is not full conformance validation.'));
+    data.parseWarnings.forEach(function(w){checks.push(pmsCheck('warn',w.path||'Parser warning',w.message||String(w),'Parser'));});
+    checks.push(pmsCheck(/^ORU(?:\^|$)/i.test(data.messageType)?'pass':'warn','Message type','MSH-9: '+(data.messageType||'missing')+'. This view is designed for result messages.'));
+    checks.push(pmsCheck(data.obrs.length?'pass':'fail','Order header',data.obrs.length?'OBR present for this order.':'No OBR header for this content. The report cannot be fully described.'));
+    checks.push(pmsCheck(data.obxs.length?'pass':'fail','Observations',data.obxs.length+' OBX segment(s) in this order.'));
+    if(data.obxs.length&&!data.obxs.some(function(s){return has(pmsField(s,5,data.d));})) checks.push(pmsCheck('warn','Empty observation values','No populated OBX-5 values in this order. Status-only or deleted results need context.'));
+    checks.push(pmsCheck(has(data.pid5)&&has(data.dob)?'pass':'warn','Patient details',has(data.pid5)&&has(data.dob)?'Name and date of birth supplied. A database match cannot be determined here.':'Name or date of birth is missing. Review the patient context.'));
+    checks.push(pmsCheck(has(data.obr24)&&!!data.obr24Name?'pass':'warn','Service label',has(data.obr24)?'OBR-24: '+data.obr24+(data.obr24Name?' ('+data.obr24Name+').':' — no label in the local dictionary.'):'OBR-24 is empty; no service label can be shown.'));
+    checks.push(pmsCheck(has(data.obr16)||has(data.orc12)?'pass':'warn','Ordering provider',has(data.obr16)||has(data.orc12)?'Ordering provider supplied. This does not establish routing or notification.':'No ordering provider supplied in OBR-16 or ORC-12.'));
+    if(data.providerMismatch) checks.push(pmsCheck('warn','Ordering provider differs','OBR-16 and ORC-12 identify different ordering providers. Verify the intended order context.','Review suggestion','heuristic'));
+    if(data.embeddedCount) checks.push(pmsCheck('warn','Embedded content',data.embeddedCount+' populated ED/RP value(s) shown as placeholders. Open embedded PDFs in Inspector.','Preview limitation','heuristic'));
+    return {verdict:checkVerdict(checks),checks:checks};
+  }
+
+
+  function pmsPreviewText(data) {
+    var d=data.d, lines=[];
+    data.segs.forEach(function(seg){
+      if(seg.name==='OBR') {
+        var test=pmsTestName(pmsField(seg,4,d),d), status=pmsField(seg,25,d);
+        if(test) { if(lines.length) lines.push(''); lines.push('=== '+test+(status?' ['+status+']':'')+' ==='); }
+        var clin=pmsClean(pmsField(seg,13,d),d); if(clin) lines.push('Clinical details: '+clin);
+      } else if(seg.name==='OBX') {
+        var type=String(pmsField(seg,2,d)||'').toUpperCase(), name=pmsObservationName(pmsField(seg,3,d),d), val=pmsClean(pmsField(seg,5,d),d), units=pmsClean(pmsField(seg,6,d),d), ref=pmsClean(pmsField(seg,7,d),d), flag=pmsClean(pmsField(seg,8,d),d);
+        if(type==='ED') { lines.push((name?name+': ':'')+'[Embedded data / PDF]'); return; }
+        if(type==='RP') { lines.push((name?name+': ':'')+'[Referenced document]'); return; }
+        var label=name ? name+': ' : '';
+        if(/^(TX|FT|ST)$/i.test(type)) lines.push(label+val);
+        else {
+          var extra=[units,ref?('ref '+ref):'',flag?('flag '+flag):''].filter(Boolean).join('  ');
+          lines.push(label+val+(extra?'  '+extra:''));
+        }
+      } else if(seg.name==='NTE') {
+        var c=pmsClean(pmsField(seg,3,d),d); if(c) lines.push(c);
+      }
+    });
+    if(!lines.length) return 'No OBR / OBX / NTE report content could be reconstructed.';
+    return lines.join('\n');
+  }
+
+  function renderPmsSources() {
+    $('pmsSources').textContent='This generic view reconstructs OBR, OBX and NTE content in message order. Service names come from the embedded dictionary. Checks identify missing data and parser warnings; they do not emulate a particular PMS or its patient database.';
+  }
+
+  function renderPmsOverview(analyses) {
+    var box=$('pmsOverview'); box.textContent=''; box.classList.add('on');
+    var checks=analyses.reduce(function(out,a){return out.concat(a.checks);},[]);
+    [['View','Generic PMS'],['Message checks',checkVerdict(checks)],['Orders / content groups',analyses.length],['Display','Illustrative']].forEach(function(r){
+      var cell=document.createElement('div'); cell.className='pms-stat';
+      var k=document.createElement('span'); k.className='k'; k.textContent=r[0];
+      var v=document.createElement('span'); v.className='v'; v.textContent=String(r[1]);
+      cell.appendChild(k); cell.appendChild(v); box.appendChild(cell);
+    });
+  }
+
+
+  function renderPmsChecks(analysis) {
+    var box=$('pmsChecks'); box.textContent='';
+    analysis.checks.forEach(function(c){
+      var row=document.createElement('div'); row.className='pms-check '+c.status;
+      var st=document.createElement('span'); st.className='pms-status'; st.textContent=c.status;
+      var nm=document.createElement('span'); nm.className='pms-check-name'; nm.textContent=c.name;
+      var dt=document.createElement('span'); dt.className='pms-check-detail'; dt.textContent=c.detail;
+      var ev=document.createElement('span'); ev.className='pms-evidence '+c.kind; ev.textContent=c.evidence;
+      row.appendChild(st); row.appendChild(nm); row.appendChild(dt); row.appendChild(ev); box.appendChild(row);
+    });
+  }
+
+  function renderPmsPreview(data) {
+    var box=$('pmsPreview'); box.textContent='';
+    var sheet=document.createElement('div'); sheet.className='pms-preview-sheet';
+    var top=document.createElement('div'); top.className='pms-preview-top';
+    var title=document.createElement('div'); title.className='pms-preview-title'; title.textContent=data.testName||'HL7 Result';
+    var meta=document.createElement('div'); meta.className='pms-preview-meta';
+    var metaLines=[];
+    if(data.patientName) metaLines.push('Patient: '+data.patientName+(data.dob?'   DOB: '+pmsTsDate(data.dob):''));
+    if(data.provider.display) metaLines.push('Provider: '+data.provider.display);
+    if(data.obr24) metaLines.push('Service: '+data.obr24+(data.obr24Name?' — '+data.obr24Name:''));
+    meta.textContent=metaLines.join('\n');
+    top.appendChild(title); top.appendChild(meta);
+    var body=document.createElement('div'); body.className='pms-preview-body'; body.textContent=pmsPreviewText(data);
+    sheet.appendChild(top); sheet.appendChild(body); box.appendChild(sheet);
+  }
+
+  function renderPmsFields(data) {
+    var box=$('pmsFields'); box.textContent='';
+    var fields=[
+      ['MSH-3','Sending Application',data.sender], ['MSH-9','Message Type',data.messageType], ['MSH-12','HL7 Version',data.version],
+      ['PID-3','Patient Identifier List',data.pid3], ['PID-5','Patient Name',data.pid5], ['PID-7','Date of Birth',data.dob],
+      ['PV1-7','Attending Doctor',data.pv17], ['PV1-8','Referring Doctor',data.pv18], ['ORC-12','Ordering Provider',data.orc12],
+      ['OBR-4','Universal Service Identifier',data.obr4], ['OBR-16','Ordering Provider',data.obr16], ['OBR-24','Diagnostic Service Section ID',data.obr24],
+      ['OBX','Observation count',String(data.obxs.length)], ['OBX-3','LOINC-coded observations',String(data.loincCount)], ['OBX-8','Flagged observations',String(data.abnormalCount)],
+      ['OBX-5','ED/RP payload count',String(data.embeddedCount)]
+    ];
+    fields.forEach(function(f){
+      var cell=document.createElement('div'); cell.className='pms-field';
+      var p=document.createElement('span'); p.className='path'; p.textContent=f[0].replace(/^(OBR|ORC|PID|PV1)(?=-|$)/,function(seg){return data.fieldPaths[seg]||seg;});
+      var n=document.createElement('span'); n.className='name'; n.textContent=f[1];
+      var v=document.createElement('span'); v.className='value'; v.textContent=f[2]||'—';
+      cell.appendChild(p); cell.appendChild(n); cell.appendChild(v); box.appendChild(cell);
+    });
+  }
+
+  function pmsPopulateMessageSelect(results) {
+    var sel=$('pmsMessageSelect'), wrap=$('pmsMessageChoice'); sel.textContent='';
+    if(results.length<=1){wrap.classList.remove('on'); return;}
+    results.forEach(function(res,i){
+      var data=pmsProfileData(res), opt=document.createElement('option'); opt.value=String(i);
+      opt.textContent='Message '+(i+1)+' — '+(data.messageType||'unknown')+' — '+(data.patientName||data.pid3||'patient unknown'); sel.appendChild(opt);
+    });
+    sel.value=String(Math.min(pmsState.index,results.length-1)); wrap.classList.add('on');
+  }
+
+  function runPmsAnalysis(reparse) {
+    var notices=$('pmsNotices'); notices.textContent='';
+    if(reparse!==false){
+      var raw=$('pmsInput').value;
+      if(!raw.trim()){clearPmsResults(); notices.appendChild(notice('Paste an HL7 result first.','err')); return;}
+      pmsState.results=HL7.parseMessages(raw); pmsState.index=0; pmsState.orderIndex=0; pmsPopulateMessageSelect(pmsState.results);
+    }
+    if(!pmsState.results.length) return;
+    var res=pmsState.results[pmsState.index], groups=groupOrders(res);
+    var dataList=groups.length?groups.map(function(g){return pmsProfileData(res,g);}):[pmsProfileData(res)];
+    var analyses=dataList.map(genericPmsAnalysis);
+    if(pmsState.orderIndex>=dataList.length) pmsState.orderIndex=0;
+    var select=$('pmsOrderSelect'); select.textContent='';
+    dataList.forEach(function(data,i){
+      var opt=document.createElement('option'); opt.value=String(i);
+      opt.textContent=(i+1)+' · '+(data.testName||'Content without an order header')+' · '+analyses[i].verdict;
+      select.appendChild(opt);
+    });
+    select.value=String(pmsState.orderIndex); $('pmsOrderChoice').hidden=false;
+    $('pmsOrderSummary').textContent='Showing '+(pmsState.orderIndex+1)+' of '+dataList.length+' · Checks below apply to this order.';
+    var data=dataList[pmsState.orderIndex], analysis=analyses[pmsState.orderIndex];
+    pmsState.currentRaw=res.rawMessage||''; $('pmsOpenInspector').disabled=!pmsState.currentRaw;
+    $('pmsProfileHint').textContent=analysis.verdict;
+    renderPmsOverview(analyses); renderPmsChecks(analysis); renderPmsPreview(data); renderPmsFields(data); renderPmsSources();
+    if(pmsState.results.length>1) notices.appendChild(notice('Use “Message in batch” to view each message separately.','info'));
+  }
+
+  function clearPmsResults() {
+    pmsState.results=[]; pmsState.index=0; pmsState.orderIndex=0; pmsState.currentRaw='';
+    $('pmsNotices').textContent=''; $('pmsOverview').textContent=''; $('pmsOverview').classList.remove('on'); $('pmsProfileHint').textContent=''; $('pmsOpenInspector').disabled=true;
+    [['pmsChecks','Build a preview to check the message and view its report content.'],['pmsPreview','The report text reconstructed from OBR / OBX / NTE will appear here.'],['pmsFields','No message analysed yet.']].forEach(function(pair){
+      var box=$(pair[0]); box.textContent=''; var empty=document.createElement('div'); empty.className='pms-empty'; empty.textContent=pair[1]; box.appendChild(empty);
+    });
+    $('pmsOrderChoice').hidden=true; $('pmsOrderSelect').textContent=''; $('pmsOrderSummary').textContent='';
+    $('pmsMessageChoice').classList.remove('on'); $('pmsMessageSelect').textContent=''; renderPmsSources();
+  }
+
+
+  /* ---------- de-identification ---------- */
+
+  function deidFieldIndex(segName, fieldNum) {
+    return segName === 'MSH' ? fieldNum - 1 : fieldNum;
+  }
+
+  var deidSession=null, deidSessionNumber=0, deidReviewResult=null, deidReviewLimit=200;
+
+  function createDeidSession(offset) {
+    if(offset==null) {
+      var random=new Uint32Array(1); crypto.getRandomValues(random);
+      offset=(random[0]%360)-180; if(offset>=0)offset++;
+    }
+    return {offset:offset,maps:Object.create(null),counters:Object.create(null)};
+  }
+
+  function getDeidSession(fresh) {
+    if(fresh||!deidSession) {deidSession=createDeidSession();deidSessionNumber++;}
+    $('deidSessionHint').textContent='Session '+deidSessionNumber+' · Same replacements and date shift until reset. Kept only in this page’s memory.';
+    return deidSession;
+  }
+
+  function shiftYmd(ymd, days) {
+    if(!/^\d{8}$/.test(ymd)) return ymd;
+    var y=+ymd.slice(0,4), m=+ymd.slice(4,6), day=+ymd.slice(6,8);
+    var dt=new Date(0); dt.setUTCFullYear(y,m-1,day); dt.setUTCHours(0,0,0,0);
+    if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==m-1||dt.getUTCDate()!==day) return ymd;
+    dt.setUTCDate(dt.getUTCDate()+days);
+    if(dt.getUTCFullYear()<1||dt.getUTCFullYear()>9999) return ymd;
+    return String(dt.getUTCFullYear()).padStart(4,'0')+String(dt.getUTCMonth()+1).padStart(2,'0')+String(dt.getUTCDate()).padStart(2,'0');
+  }
+
+  function shiftTemporal(value,type,d,days) {
+    var issues=[];
+    function stamp(v,kind) {
+      if(!v||v==='""')return v;
+      if(/^\d{4}(\d{2})?$/.test(v)) {issues.push('Partial date left unchanged; choose a replacement after review.');return v;}
+      var valid=/^\d{8}(?:\d{2}){0,3}(?:\.\d+)?(?:[+-]\d{4})?$/.test(v)&&HL7.validTemporal(v,kind);
+      if(kind==='DT'&&!/^\d{8}$/.test(v))valid=false;
+      if(!valid){issues.push('Invalid or unsupported date left unchanged.');return v;}
+      var shifted=shiftYmd(v.slice(0,8),days);
+      if(shifted===v.slice(0,8)&&days!==0)issues.push('Date cannot be shifted within the supported year range.');
+      return shifted+v.slice(8);
+    }
+    var output=String(value).split(d.rep).map(function(rep){
+      if(type==='TM')return rep;
+      if(type==='TS'){var c=rep.split(d.comp);c[0]=stamp(c[0],'DTM');return c.join(d.comp);}
+      if(type==='DR')return rep.split(d.comp).map(function(v){var c=v.split(d.sub);c[0]=stamp(c[0],'DTM');return c.join(d.sub);}).join(d.comp);
+      if(type==='TQ'){var c=rep.split(d.comp);[3,4].forEach(function(i){if(c[i]){var sub=c[i].split(d.sub);sub[0]=stamp(sub[0],'DTM');c[i]=sub.join(d.sub);}});return c.join(d.comp);}
+      return stamp(rep,type);
+    }).join(d.rep);
+    return {value:output,issues:issues};
+  }
+
+  function deidToken(ctx, category, original, prefix) {
+    var key=JSON.stringify([category,original]);
+    if(ctx.maps[key])return ctx.maps[key];
+    ctx.counters[category]=(ctx.counters[category]||0)+1;
+    return ctx.maps[key]=prefix+String(ctx.counters[category]).padStart(3,'0');
+  }
+
+  function pseudoIdentifier(value,ctx,prefix,type) {
+    var d=ctx.d;
+    return value.split(d.rep).map(function(rep){
+      if(!rep||rep==='""')return rep;
+      var c=rep.split(d.comp);
+      if(type==='EIP')return c.map(function(ei){
+        var parts=ei.split(d.sub);if(parts[0])parts[0]=deidToken(ctx,prefix,[parts[0],parts.slice(1)],prefix.toUpperCase());return parts.join(d.sub);
+      }).join(d.comp);
+      var authority=type==='CX'?[c[3]||'',c[4]||'']:type==='EI'?c.slice(1):[];
+      if(c[0])c[0]=deidToken(ctx,prefix,[c[0],authority],prefix.toUpperCase());
+      return c.join(d.comp);
+    }).join(d.rep);
+  }
+
+  function pseudoName(value,ctx,category,prefix) {
+    return value.split(ctx.d.rep).map(function(rep){
+      if(!rep||rep==='""')return rep;
+      var c=rep.split(ctx.d.comp), token=deidToken(ctx,category,c.slice(0,6).map(function(v){return v.toUpperCase();}),prefix);
+      while(c.length<2)c.push('');
+      c=c.map(function(v,i){return i===6||i===7?v:'';});
+      c[0]=token;c[1]='DEIDENTIFIED';return c.join(ctx.d.comp);
+    }).join(ctx.d.rep);
+  }
+
+  function pseudoProvider(value,ctx) {
+    return value.split(ctx.d.rep).map(function(rep){
+      if(!rep||rep==='""')return rep;
+      var c=rep.split(ctx.d.comp), identity=c[0]?[c[0],c[8]||'',c[12]||'']:c.slice(1,4).map(function(v){return v.toUpperCase();});
+      var token=deidToken(ctx,'provider',identity,'PROV');
+      while(c.length<3)c.push('');
+      c=c.map(function(v,i){return i===8||i===12?v:'';});
+      c[0]=token;c[1]='PROVIDER';c[2]='DEIDENTIFIED';return c.join(ctx.d.comp);
+    }).join(ctx.d.rep);
+  }
+
+  function scrubComposite(value,ctx,keep) {
+    return value.split(ctx.d.rep).map(function(rep){
+      if(rep==='""')return rep;
+      return rep.split(ctx.d.comp).map(function(v,i){return !v||keep.indexOf(i)>=0?v:'REDACTED';}).join(ctx.d.comp);
+    }).join(ctx.d.rep);
+  }
+
+  function deidentifyMessage(raw,options,session) {
+    var parsed=HL7.parseMessages(raw);
+    if(!parsed.length)return {ok:false,error:'No HL7 message could be parsed.'};
+    var errors=[];
+    parsed.forEach(function(res,i){
+      (res.errors||[]).forEach(function(e){errors.push('Message '+(i+1)+': '+e);});
+      var ds=Object.values(res.delims);
+      if(new Set(ds).size!==5||ds.some(function(v){return /[A-Za-z0-9\s"]/.test(v);}))errors.push('Message '+(i+1)+': delimiters must be distinct punctuation characters other than a quote.');
+    });
+    if(errors.length)return {ok:false,error:errors.join(' ')};
+    session=session||createDeidSession();
+    var outMessages=[], audit=[], aggregate=Object.create(null), totalChanged=0, parserWarnings=[];
+    parsed.forEach(function(res,msgIndex){
+      var d=res.delims,ctx={d:d,maps:session.maps,counters:session.counters};
+      (res.warnings||[]).forEach(function(w){parserWarnings.push('Message '+(msgIndex+1)+' '+w.path+': '+w.message);});
+      var lines=res.segments.map(function(segment){
+        var seg=segment.seg,parts=segment.value.split(d.field), handled=Object.create(null), reasons=Object.create(null), categories=Object.create(null);
+        function current(n){return seg==='MSH'&&n===1?d.field:(parts[deidFieldIndex(seg,n)]||'');}
+        function type(n){var f=segmentField(segment,n);return f?f.datatype:'';}
+        function set(n,value,category,review){
+          if(!current(n)||current(n)==='""')return;
+          parts[deidFieldIndex(seg,n)]=value;handled[n]=true;categories[n]=category;
+          if(review)reasons[n]=(reasons[n]||[]).concat(review);
+        }
+        function ident(n,prefix){set(n,pseudoIdentifier(current(n),ctx,prefix,type(n)),'Identifiers',/^(CX|EI|EIP)$/.test(type(n))||current(n).indexOf(d.comp)!==-1||current(n).indexOf(d.sub)!==-1?'Identifier replaced; retained authority, type and other composite parts need review.':null);}
+        function pname(n,category,prefix){set(n,pseudoName(current(n),ctx,category,prefix),'Names');}
+        function addr(n){set(n,scrubComposite(current(n),ctx,[6]),'Addresses');}
+        function phone(n){set(n,scrubComposite(current(n),ctx,[1,2]),'Phones/contact');}
+        function whole(n,replacement,category){set(n,replacement,category);}
+        function provider(n){set(n,pseudoProvider(current(n),ctx),'Providers',current(n).split(d.rep).some(function(v){var c=v.split(d.comp);return c[8]||c[12];})?'Provider replaced; retained authority and identifier type need review.':null);}
+
+        if(options.patient){
+          if(seg==='PID'){
+            [2,3,4,18,21].forEach(function(n){ident(n,'patient');});
+            [5,6,9].forEach(function(n){pname(n,'patientName','PATIENT');});
+            addr(11);phone(13);phone(14);[12,19,20,23].forEach(function(n){whole(n,'REDACTED','Patient details');});
+          }
+          if(seg==='MRG'){[1,2,3,4,5,6].forEach(function(n){ident(n,'patient');});pname(7,'patientName','PATIENT');}
+          if(seg==='PV1')[5,19,50].forEach(function(n){ident(n,'visit');});
+          if(seg==='MSH')ident(10,'message');
+          if(seg==='ORC'){[2,3,4,8].forEach(function(n){ident(n,'order');});phone(14);}
+          if(seg==='OBR'){[2,3,18,19,20,21,29].forEach(function(n){ident(n,'order');});phone(17);}
+          if(seg==='SPM')ident(2,'specimen');
+        }
+        if(options.related){
+          if(seg==='NK1'){pname(2,'relatedName','CONTACT');addr(4);phone(5);phone(6);}
+          if(seg==='GT1'){ident(2,'guarantor');pname(3,'guarantorName','GUARANTOR');pname(4,'guarantorName','GUARANTOR');addr(5);phone(6);phone(7);}
+          if(seg==='IN1'){whole(8,'REDACTED','Insurance identifiers');pname(16,'insuredName','INSURED');addr(19);whole(36,'REDACTED','Insurance identifiers');}
+        }
+        if(options.providers){
+          var providerFields={EVN:[5],PD1:[4],PV1:[7,8,9,17],DG1:[16],ORC:[10,11,12,19],OBR:[10,16,28],OBX:[16]};
+          (providerFields[seg]||[]).forEach(provider);
+          if(seg==='OBR')whole(32,'REDACTED','Providers');
+        }
+        if(options.freeText){
+          if(seg==='NTE')whole(3,'REDACTED FREE TEXT','Free text');
+          if(seg==='OBR'){whole(13,'REDACTED FREE TEXT','Free text');whole(31,'REDACTED FREE TEXT','Free text');}
+          if(seg==='DG1')whole(4,'REDACTED FREE TEXT','Free text');
+        }
+        if(seg==='OBX'){
+          var vt=type(5);
+          if(options.freeText&&/^(ST|TX|FT)$/.test(vt))whole(5,'REDACTED FREE TEXT','Free text');
+          if(options.attachments&&/^(ED|RP)$/.test(vt))whole(5,'','Embedded/reference data');
+          if(options.patient&&/^(XPN|PN)$/.test(vt))pname(5,'patientName','PATIENT');
+          if(options.patient&&/^(CX|EI|EIP|CK)$/.test(vt))ident(5,'patient');
+          if(options.patient&&/^(XAD|AD)$/.test(vt))addr(5);
+          if(options.patient&&/^(XTN|TN)$/.test(vt))phone(5);
+          if(options.providers&&vt==='XCN')provider(5);
+        }
+        if(options.dates){
+          segment.children.forEach(function(f){
+            var n=+f.canonicalPath.split('-')[1], t=f.datatype;
+            if(!/^(TS|DT|DTM|DR|TM|TQ)$/.test(t)||!current(n))return;
+            var result=shiftTemporal(current(n),t,d,session.offset);
+            set(n,result.value,t==='TM'?'Time of day retained':'Dates/times',result.issues);
+            if(t==='TQ')reasons[n]=(reasons[n]||[]).concat(['Timing dates processed; other timing components retained for review.']);
+          });
+        }
+        segment.children.forEach(function(f){
+          if(f.value==='')return;
+          var n=+f.canonicalPath.split('-')[1], after=current(n), changed=f.value!==after, issues=reasons[n]||[];
+          var structural=(seg==='MSH'&&(n===1||n===2))||f.value==='""';
+          if(!handled[n]&&!structural)issues.push(/^Z/.test(seg)?'Custom segment: no de-identification rule covers this field.':'No enabled rule covers this populated field. Review its contents.');
+          if(changed){totalChanged++;var category=categories[n]||'Other';aggregate[category]=(aggregate[category]||0)+1;}
+          audit.push({message:msgIndex+1,path:f.path,label:f.label,before:f.value,after:after,changed:changed,review:issues.length>0,
+            reason:issues.length?issues.join(' '):(categories[n]||'Structural value retained'),category:categories[n]||''});
+        });
+        return parts.join(d.field);
+      });
+      outMessages.push(lines.join('\r'));
+    });
+    var output=outMessages.join('\r'), reparsed=HL7.parseMessages(output);
+    if(reparsed.length!==parsed.length||reparsed.some(function(r){return r.errors.length;}))return {ok:false,error:'The output failed a structural reparse. Review the source message and its delimiters.'};
+    reparsed.forEach(function(r,i){r.warnings.forEach(function(w){var text='Output message '+(i+1)+' '+w.path+': '+w.message;if(parserWarnings.indexOf(text)===-1)parserWarnings.push(text);});});
+    return {ok:true,output:output,messageCount:outMessages.length,changed:totalChanged,categories:aggregate,offsets:options.dates?[session.offset]:[],audit:audit,warnings:parserWarnings,reviewCount:audit.filter(function(x){return x.review;}).length};
+  }
+
+  function renderDeidReview(result) {
+    deidReviewResult=result; var box=$('deidReview');box.hidden=!result;
+    var rows=$('deidReviewRows');rows.textContent='';if(!result)return;
+    var filter=$('deidReviewFilter').value;
+    var entries=result.audit.filter(function(x){return filter==='all'||(filter==='changed'?x.changed:x.review);});
+    function preview(text){return text.length>240?text.slice(0,240)+' … ('+text.length.toLocaleString()+' characters; full value in the message)':text||'〈empty〉';}
+    entries.slice(0,deidReviewLimit).forEach(function(entry){
+      var row=document.createElement('tr');
+      ['Message '+entry.message+' · '+entry.path+'\n'+entry.label,preview(entry.before),preview(entry.after),(entry.changed?'Changed. ':'Retained. ')+entry.reason].forEach(function(text,i){
+        var cell=document.createElement('td');cell.textContent=text;if(i===3&&entry.review)cell.className='needs-review';row.appendChild(cell);
+      });rows.appendChild(row);
+    });
+    $('deidReviewCount').textContent=entries.length?'Showing '+Math.min(entries.length,deidReviewLimit)+' of '+entries.length+' fields. '+result.reviewCount+' fields need review across the output.':'No fields in this view. This does not certify the output as anonymous.';
+    $('deidReviewMore').hidden=entries.length<=deidReviewLimit;
+  }
+
+
+  function renderDeidSummary(result) {
+    var box=$('deidSummary'); box.textContent=''; box.classList.toggle('on',!!result);
+    if(!result)return;
+    var cats=Object.keys(result.categories).sort(function(a,b){return result.categories[b]-result.categories[a];});
+    var rows=[['Messages',result.messageCount],['Fields changed',result.changed],['Needs review',result.reviewCount],['Date shift',result.offsets.map(function(n){return (n>0?'+':'')+n+'d';}).join(', ')||'—']];
+    cats.slice(0,5).forEach(function(k){rows.push([k,result.categories[k]]);});
+    rows.forEach(function(pair){
+      var cell=document.createElement('div'); cell.className='deid-stat';
+      var k=document.createElement('span'); k.className='k'; k.textContent=pair[0];
+      var v=document.createElement('span'); v.className='v'; v.textContent=String(pair[1]);
+      cell.appendChild(k); cell.appendChild(v); box.appendChild(cell);
+    });
+  }
+
+  function invalidateDeidOutput(message) {
+    deidLastOutput='';
+    $('deidOutput').value='';
+    $('deidOutputHint').textContent=message||'Not generated yet';
+    $('deidCopy').disabled=true; $('deidSave').disabled=true; $('deidInspect').disabled=true;
+    renderDeidSummary(null); renderDeidReview(null);
+  }
+
+  function runDeid() {
+    var notices=$('deidNotices'); notices.textContent='';
+    var raw=$('deidInput').value;
+    if(!raw.trim()) { invalidateDeidOutput(); notices.appendChild(notice('Paste an HL7 message first.','err')); return; }
+    var options={patient:$('deidPatient').checked,related:$('deidRelated').checked,providers:$('deidProviders').checked,dates:$('deidDates').checked,freeText:$('deidFreeText').checked,attachments:$('deidAttachments').checked};
+    invalidateDeidOutput();
+    var result=deidentifyMessage(raw,options,getDeidSession(!$('deidReuse').checked));
+    if(!result.ok){ notices.appendChild(notice(result.error||'Could not de-identify the message.','err')); return; }
+    deidLastOutput=result.output;
+    $('deidOutput').value=result.output;
+    $('deidOutputHint').textContent=result.changed+' field'+(result.changed===1?'':'s')+' changed';
+    $('deidCopy').disabled=false; $('deidSave').disabled=false; $('deidInspect').disabled=false;
+    renderDeidSummary(result); deidReviewLimit=200; renderDeidReview(result);
+    (result.warnings||[]).slice(0,10).forEach(function(w){notices.appendChild(notice(w,'info'));});
+    if(result.warnings.length>10)notices.appendChild(notice((result.warnings.length-10)+' more parser warnings. Open the output in Inspector to review.','info'));
+    if(result.changed===0) notices.appendChild(notice('No selected de-identification rule changed this message. Review custom/Z-segment fields manually.','info'));
+    else notices.appendChild(notice('Generated locally. Review custom Z-segments and any remaining free text before sharing.','info'));
+  }
+
+  function saveDeid() {
+    var text=deidLastOutput; if(!text)return;
+    var blob=new Blob([text],{type:'text/plain'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download='hl7-deidentified.hl7'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},1000); toast('Saved hl7-deidentified.hl7');
+  }
+
   function switchMode(mode) {
-    var inspect=mode==='inspect';
-    $('inspectPane').classList.toggle('on',inspect); $('comparePane').classList.toggle('on',!inspect);
-    $('inspectTab').setAttribute('aria-selected',String(inspect)); $('compareTab').setAttribute('aria-selected',String(!inspect));
+    var inspect=mode==='inspect', compare=mode==='compare', deid=mode==='deid', pms=mode==='pms';
+    $('inspectPane').classList.toggle('on',inspect); $('comparePane').classList.toggle('on',compare); $('deidPane').classList.toggle('on',deid); $('pmsPane').classList.toggle('on',pms);
+    $('inspectTab').setAttribute('aria-selected',String(inspect)); $('compareTab').setAttribute('aria-selected',String(compare)); $('deidTab').setAttribute('aria-selected',String(deid)); $('pmsTab').setAttribute('aria-selected',String(pms));
     if(!inspect) $('inspector').classList.remove('on');
   }
 
@@ -2748,9 +3805,32 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
 
   /* ---------- wire up ---------- */
 
+  function initTheme() {
+    var select=$('themeSelect'), root=document.documentElement;
+    var media=window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    select.value=root.dataset.themePreference||'system';
+    function applyTheme() {
+      var preference=select.value;
+      root.dataset.themePreference=preference;
+      root.dataset.theme=preference==='system'?(media&&media.matches?'dark':'light'):preference;
+    }
+    select.addEventListener('change',function(){
+      applyTheme();
+      try { localStorage.setItem('hl7-inspector-theme',select.value); } catch (_) {}
+    });
+    if(media) {
+      if(media.addEventListener)media.addEventListener('change',applyTheme);
+      else if(media.addListener)media.addListener(applyTheme);
+    }
+    applyTheme();
+  }
+
   function init() {
+    initTheme();
     $('inspectTab').addEventListener('click', function(){ switchMode('inspect'); });
     $('compareTab').addEventListener('click', function(){ switchMode('compare'); });
+    $('deidTab').addEventListener('click', function(){ switchMode('deid'); });
+    $('pmsTab').addEventListener('click', function(){ switchMode('pms'); renderPmsSources(); });
 
     $('parseBtn').addEventListener('click', doParse);
     $('sampleBtn').addEventListener('click', function () { $('raw').value = HL7.SAMPLE; doParse(); });
@@ -2797,13 +3877,47 @@ mark.hit { background: #fff2bf; color: #5c4a15; border-radius: 3px; padding: 0 2
     $('fileAInput').addEventListener('change', function(ev){ readFileInto(ev.target.files[0],'compareA',false); ev.target.value=''; });
     $('fileBInput').addEventListener('change', function(ev){ readFileInto(ev.target.files[0],'compareB',false); ev.target.value=''; });
 
+    $('pmsAnalyze').addEventListener('click', function(){ runPmsAnalysis(true); });
+    $('pmsUseInspector').addEventListener('click', function(){ $('pmsInput').value=state.res&&state.res.rawMessage?state.res.rawMessage:$('raw').value; clearPmsResults(); });
+    $('pmsSampleBtn').addEventListener('click', function(){ $('pmsInput').value=HL7.SAMPLE; clearPmsResults(); });
+    $('pmsFileBtn').addEventListener('click', function(){ $('pmsFileInput').click(); });
+    $('pmsFileInput').addEventListener('change', function(ev){ clearPmsResults(); readFileInto(ev.target.files[0],'pmsInput',false); ev.target.value=''; });
+    $('pmsOrderSelect').addEventListener('change', function(){pmsState.orderIndex=parseInt(this.value,10)||0;runPmsAnalysis(false);});
+    $('pmsMessageSelect').addEventListener('change', function(){pmsState.index=parseInt(this.value,10)||0;pmsState.orderIndex=0;if(pmsState.results.length)runPmsAnalysis(false);});
+
+    $('pmsOpenInspector').addEventListener('click', function(){ if(!pmsState.currentRaw)return; $('raw').value=pmsState.currentRaw; switchMode('inspect'); doParse(); });
+    $('pmsClear').addEventListener('click', function(){ $('pmsInput').value=''; clearPmsResults(); $('pmsInput').focus(); });
+    $('pmsInput').addEventListener('input', function(){ if(pmsState.results.length) clearPmsResults(); });
+    $('pmsInput').addEventListener('keydown', function(ev){ if((ev.ctrlKey||ev.metaKey)&&ev.key==='Enter'){ev.preventDefault();runPmsAnalysis(true);} });
+
+    $('deidBtn').addEventListener('click', runDeid);
+    $('deidNewSession').addEventListener('click', function(){getDeidSession(true);invalidateDeidOutput('New session — run again');$('deidNotices').textContent='';});
+    $('deidReuse').addEventListener('change', function(){invalidateDeidOutput('Session option changed — run again');});
+    $('deidReviewFilter').addEventListener('change', function(){deidReviewLimit=200;renderDeidReview(deidReviewResult);});
+    $('deidReviewMore').addEventListener('click', function(){deidReviewLimit+=200;renderDeidReview(deidReviewResult);});
+    $('deidUseInspector').addEventListener('click', function(){ $('deidInput').value=state.res&&state.res.rawMessage?state.res.rawMessage:$('raw').value; invalidateDeidOutput(); });
+    $('deidSampleBtn').addEventListener('click', function(){ $('deidInput').value=HL7.SAMPLE; invalidateDeidOutput(); });
+    $('deidFileBtn').addEventListener('click', function(){ $('deidFileInput').click(); });
+    $('deidFileInput').addEventListener('change', function(ev){ invalidateDeidOutput(); readFileInto(ev.target.files[0],'deidInput',false); ev.target.value=''; });
+    $('deidCopy').addEventListener('click', function(){ copy(deidLastOutput,'Copied de-identified HL7'); });
+    $('deidSave').addEventListener('click', saveDeid);
+    $('deidInspect').addEventListener('click', function(){ $('raw').value=deidLastOutput; switchMode('inspect'); doParse(); });
+    $('deidClear').addEventListener('click', function(){
+      $('deidInput').value=''; $('deidNotices').textContent=''; invalidateDeidOutput(); $('deidInput').focus();
+    });
+    $('deidInput').addEventListener('input', function(){ if(deidLastOutput) invalidateDeidOutput('Input changed — run again'); });
+    $('deidInput').addEventListener('keydown', function(ev){ if((ev.ctrlKey||ev.metaKey)&&ev.key==='Enter'){ev.preventDefault();runDeid();} });
+    ['deidPatient','deidRelated','deidProviders','deidDates','deidFreeText','deidAttachments'].forEach(function(id){
+      $(id).addEventListener('change', function(){ if(deidLastOutput) invalidateDeidOutput('Options changed — run again'); });
+    });
+
     document.addEventListener('keydown', function (ev) {
       if ((ev.ctrlKey || ev.metaKey) && ev.key === 'f' && state.res && $('inspectPane').classList.contains('on')) { ev.preventDefault(); $('search').focus(); $('search').select(); }
       if (ev.key === 'Escape' && $('pdfModal').classList.contains('on')) { closePdfViewer(); return; }
       if (ev.key === 'Escape' && $('inspector').classList.contains('on')) $('inspClose').click();
     });
 
-    render(); renderMessageNav();
+    render(); renderMessageNav(); renderPmsSources();
   }
 
   if (document.readyState === 'loading') {
