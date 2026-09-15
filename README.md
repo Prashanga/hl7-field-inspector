@@ -1,6 +1,6 @@
 # HL7 Field Inspector
 
-Download `public\index.html` and open directly in a modern browser. It is a self-contained local app: no installation, build step, server, uploads or external dependencies are needed.
+Download `public/index.html` and open directly in a modern browser. It is a self-contained local app: no installation, build step, server, uploads or external dependencies are needed.
 
 The app provides four tools: **Inspector**, **Compare**, **De-identify** and **PMS Preview**.
 
@@ -77,7 +77,17 @@ De-identification remains best effort. Unmapped fields and retained composite pa
 
 ## Inspector
 
-The field tree, practical version-aware dictionary, search, escape decoding, batch navigation, JSON export and local embedded PDF viewer remain available. **Open output in Inspector** transfers generated de-identification output; **Open message in Inspector** transfers the selected preview message.
+The field tree, practical version-aware dictionary, search, escape decoding, batch navigation, JSON export and local embedded PDF viewer remain available.
+
+### Common names
+
+Each field and component shows an everyday name next to its HL7 name, for example **Provider number / doctor ID** for OBR-16.1, **Filler order number (lab accession / specimen number)** for OBR-3, or **Receiving practice (often the EDI account or practice ID)** for MSH-6. These follow the terms used in Australian pathology and GP secure-messaging feeds (UR number, Medicare, DVA, IHI, provider number, accession, EDI account). They are readability hints, not HL7 definitions, and they are included in search and JSON export. Turn them off with the **Common names** toggle in the toolbar.
+
+### Keyboard and files
+
+Press **Tab** to move into the tree, then use the arrow keys; press **/** to jump to the search box. Ctrl/Cmd+F is left to the browser while you are typing in a text field. Warning paths in the notices are clickable and select the affected row.
+
+Opened files are decoded by character set: a byte-order mark, then strict UTF-8, then the MSH-18 declared character set (for example `8859/1`), then Windows-1252 as a fallback. A notice states which character set was used when it was not plain UTF-8 or ASCII. **Open output in Inspector** transfers generated de-identification output; **Open message in Inspector** transfers the selected preview message.
 
 
 ## Attribution

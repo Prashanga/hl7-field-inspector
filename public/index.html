@@ -479,6 +479,10 @@ mark.hit { background: var(--warn-bg); color: var(--warn); border-radius: 3px; p
 
 .notice.warn { border-color: var(--warn-border); color: var(--warn); background: var(--warn-bg); }
 .notice .notice-path { font-family: var(--mono); font-weight: 700; margin-right: 6px; }
+.notice button.notice-path { background: none; border: 0; padding: 0; color: inherit; cursor: pointer; text-decoration: underline dotted; font-size: inherit; }
+.notice button.notice-path:hover, .notice button.notice-path:focus-visible { text-decoration: underline; outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+.row .common { color: var(--muted); font-weight: 400; margin-left: 8px; font-size: 12px; overflow-wrap: anywhere; }
+.row .common::before { content: "· "; }
 
 .summary-wrap { display: grid; gap: 12px; padding: 6px 0 20px; }
 .summary-card {
@@ -1006,7 +1010,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     <section class="input-block">
       <div class="input-head">
         <span class="eyebrow">Raw message</span>
-        <span class="eyebrow">Ctrl/Cmd + Enter · or drop a .hl7/.txt file</span>
+        <span class="eyebrow">Ctrl/Cmd + Enter · or drop a .hl7/.txt file · press / to search</span>
       </div>
       <textarea id="raw" spellcheck="false" placeholder="Paste a raw HL7 v2 message here. Segments may be separated by CR, LF, or CRLF — if the line breaks were stripped in transit, they'll be recovered automatically."></textarea>
       <div class="actions">
@@ -1033,6 +1037,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
       <span class="count-tag" id="countTag"></span>
       <label class="toggle"><input type="checkbox" id="hideEmpty" checked>Hide empty fields</label>
       <label class="toggle"><input type="checkbox" id="decodeEsc">Decode escapes</label>
+      <label class="toggle" title="Show everyday names next to the HL7 field names (for example Provider number, UR number, Accession)"><input type="checkbox" id="commonNames" checked>Common names</label>
       <button class="btn" id="expandAll" type="button">Expand all</button>
       <button class="btn" id="collapseAll" type="button">Collapse all</button>
     </div>
@@ -1042,7 +1047,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     <main class="tree" id="tree" role="tree" aria-label="Parsed HL7 message"></main>
 
     <footer class="foot">
-      <span>Click any row to inspect it. Arrow keys navigate the tree; <code>&larr;</code> <code>&rarr;</code> collapse and expand.</span>
+      <span>Click any row to inspect it, or Tab into the tree. Arrow keys move; <code>&larr;</code> <code>&rarr;</code> collapse and expand; <code>/</code> jumps to search.</span>
       <span>Single local HTML file. Structural inspector with practical version-aware labels and syntax warnings; not a substitute for an interface-specific conformance profile.</span>
     </footer>
   </section>
@@ -1249,6 +1254,10 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
       <div class="insp-field" id="inspDecodedWrap" style="display:none">
         <span class="k">With escapes decoded</span>
         <div class="v" id="inspDecoded"></div>
+      </div>
+      <div class="insp-field" id="inspCommonWrap" style="display:none">
+        <span class="k">Common name</span>
+        <div class="v" id="inspCommon"></div>
       </div>
       <div class="insp-field">
         <span class="k">Interpretation</span>
@@ -1556,8 +1565,134 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
                   A05:'Pre-admit a patient', A08:'Update patient information',
                   A11:'Cancel admit', A13:'Cancel discharge', A28:'Add person information',
                   A31:'Update person information', A40:'Merge patient - patient identifier list' },
-    'NTE-2':    { L:'Ancillary (filler) department', P:'Orderer (placer)', O:'Other system' }
+    'NTE-2':    { L:'Ancillary (filler) department', P:'Orderer (placer)', O:'Other system' },
+    'MSH-9.1':  { ADT:'Admit/discharge/transfer', ORU:'Unsolicited observation result', ORM:'Order',
+                  ORR:'Order response', OML:'Laboratory order', OUL:'Unsolicited laboratory observation',
+                  ACK:'General acknowledgment', QRY:'Query', QBP:'Query by parameter', RSP:'Query response',
+                  MDM:'Medical document management', SIU:'Scheduling information', DFT:'Detailed financial transaction',
+                  BAR:'Billing account', RDE:'Pharmacy encoded order', RAS:'Pharmacy administration',
+                  VXU:'Vaccination update', REF:'Referral', RRI:'Referral response' },
+    'OBR-24':   { AU:'Audiology', BG:'Blood Gases', BLB:'Blood Bank', CG:'Cytogenetics', CH:'Chemistry', CP:'Cytopathology',
+                  CT:'CAT Scan', CTH:'Cardiac Catheterization', CUS:'Cardiac Ultrasound', EC:'Electrocardiac', EN:'Electroneuro',
+                  GE:'Genetics', HM:'Haematology', ICU:'ICU Monitoring', IMG:'Diagnostic Imaging', IMM:'Immunology', LAB:'Laboratory',
+                  MB:'Microbiology', MCB:'Mycobacteriology', MYC:'Mycology', NMR:'Nuclear Magnetic Resonance', NMS:'Nuclear Medicine Scan',
+                  NRS:'Nursing Services Measures', OSL:'Outside Lab', OT:'Occupational Therapy', OTH:'Other', OUS:'OB Ultrasound',
+                  PAR:'Parasitology', PAT:'Pathology', PF:'Pulmonary Function', PHR:'Pharmacy', PHY:'Physician', PT:'Physical Therapy',
+                  RAD:'Radiology', RC:'Respiratory Care', RT:'Radiation Therapy', RUS:'Radiology Ultrasound', RX:'Radiograph',
+                  SP:'Surgical Pathology', SR:'Serology', TX:'Toxicology', URN:'Urinalysis', VR:'Virology', VUS:'Vascular Ultrasound',
+                  XRC:'Cineradiograph' }
   };
+  // Trigger events: non-ADT triggers plus the ADT list already kept under EVN-1.
+  CODES['MSH-9.2'] = Object.assign({
+    R01:'Unsolicited observation result', R21:'Unsolicited laboratory observation', R30:'Unsolicited point-of-care observation',
+    R32:'Unsolicited pre-ordered point-of-care observation', O01:'Order message', O02:'Order response', O21:'Laboratory order',
+    O22:'Laboratory order response', Q01:'Query sent for immediate response', Q02:'Query sent for deferred response',
+    Q11:'Query by parameter', K11:'Query response (segment pattern)', T02:'Original document notification and content',
+    S12:'New appointment booking', P03:'Post detailed financial transaction', V04:'Unsolicited vaccination update', I12:'Patient referral'
+  }, CODES['EVN-1']);
+  CODES['OBX-2'] = Object.assign({ DTM:'Date/time', NA:'Numeric array', CX:'Extended composite ID', XPN:'Extended person name',
+    XAD:'Extended address', XTN:'Extended telecommunication number', XCN:'Extended composite name and ID', XON:'Organization name',
+    CNE:'Coded with no exceptions', MO:'Money', TN:'Telephone number', PN:'Person name', IS:'Coded value (user-defined)', ID:'Coded value (HL7-defined)' }, CODES['OBX-2']);
+
+  /* ---------- Common (everyday) names for high-traffic fields ----------
+     These are the labels interface analysts, laboratories and practices actually use when they talk
+     about a message, with an Australian pathology / GP secure-messaging flavour (UR number, Medicare,
+     provider number, accession, EDI account). Keyed by canonical path; components use ".n".
+     They are hints for readability, not HL7 definitions. */
+  var COMMON = {
+    MSH:'Message header / envelope', MSA:'Acknowledgement', ERR:'Error detail', EVN:'Event', PID:'Patient demographics',
+    PD1:'Patient extras (usual GP)', NK1:'Next of kin / emergency contact', PV1:'Visit / encounter', PV2:'Visit extras',
+    ORC:'Order details', OBR:'Test request / report header', OBX:'Result line', NTE:'Comment', SPM:'Specimen',
+    DG1:'Diagnosis', AL1:'Allergy', GT1:'Guarantor / bill payer', IN1:'Insurance / health fund', MRG:'Merge (old patient record)',
+
+    'MSH-3':'Sending system', 'MSH-4':'Sending organisation (lab / hospital / practice)',
+    'MSH-5':'Receiving system (often the secure-messaging / EDI service)',
+    'MSH-6':'Receiving practice (often the EDI account or practice ID)', 'MSH-7':'Message date/time',
+    'MSH-9':'Message type and event', 'MSH-9.1':'Message type (ORU results, ADT admissions, ORM orders)', 'MSH-9.2':'Trigger event',
+    'MSH-10':'Unique message ID (control ID)', 'MSH-11':'Environment (P production, T test/training)', 'MSH-12':'HL7 version',
+    'MSH-18':'Character set / text encoding', 'MSH-21':'Message profile / conformance ID',
+    'MSA-1':'Acknowledgement result (AA accepted, AE error, AR rejected)', 'MSA-2':'ID of the message being acknowledged',
+    'MSA-3':'Acknowledgement text / error message', 'ERR-3':'HL7 error code', 'ERR-8':'Error message for users',
+    'EVN-1':'Event type', 'EVN-2':'When the event was recorded', 'EVN-5':'Operator / user',
+
+    'PID-2':'Legacy patient ID', 'PID-3':'Patient identifiers (UR/MRN, Medicare, DVA, IHI)',
+    'PID-3.1':'Identifier value (e.g. UR number, Medicare number)', 'PID-3.4':'Issuer of the identifier',
+    'PID-3.5':'Identifier type (MR = UR/medical record, MC = Medicare, DVA, NI = IHI, PI = practice ID)',
+    'PID-4':'Alternate / old patient ID', 'PID-5':'Patient name', 'PID-5.1':'Surname', 'PID-5.2':'First name',
+    'PID-5.3':'Middle name(s)', 'PID-5.5':'Title (Mr, Mrs, Dr)', 'PID-5.7':'Name type (L legal, A alias)',
+    'PID-6':"Mother's maiden name", 'PID-7':'Date of birth', 'PID-8':'Sex', 'PID-9':'Alias / previous name',
+    'PID-10':'Race / ethnicity code', 'PID-11':'Home address', 'PID-11.1':'Street address', 'PID-11.3':'Suburb / city',
+    'PID-11.4':'State', 'PID-11.5':'Postcode', 'PID-11.6':'Country', 'PID-11.7':'Address type (H home, M mailing)',
+    'PID-13':'Home phone / email', 'PID-13.1':'Phone number', 'PID-13.4':'Email address', 'PID-14':'Work phone',
+    'PID-15':'Preferred language', 'PID-16':'Marital status', 'PID-18':'Account / billing number (episode in some systems)',
+    'PID-19':'National ID (SSN; Medicare number in some Australian feeds)', 'PID-21':"Mother's patient ID",
+    'PID-22':'Ethnic group (e.g. Aboriginal / Torres Strait Islander status)', 'PID-29':'Date of death', 'PID-30':'Deceased flag',
+    'PD1-3':'Usual practice / clinic', 'PD1-4':'Usual GP',
+    'NK1-2':'Contact name', 'NK1-3':'Relationship to patient', 'NK1-4':'Contact address', 'NK1-5':'Contact phone',
+    'MRG-1':'Old patient identifiers (UR being merged away)', 'MRG-3':'Old account number', 'MRG-7':'Old patient name',
+
+    'PV1-2':'Patient class (I inpatient, O outpatient, E emergency)', 'PV1-3':'Current ward / room / bed',
+    'PV1-3.1':'Ward / clinic', 'PV1-3.2':'Room', 'PV1-3.3':'Bed', 'PV1-3.4':'Hospital / facility', 'PV1-4':'Admission type',
+    'PV1-7':'Attending / treating doctor', 'PV1-8':'Referring doctor (GP)', 'PV1-9':'Consulting doctor',
+    'PV1-10':'Hospital service / specialty', 'PV1-17':'Admitting doctor', 'PV1-18':'Patient type',
+    'PV1-19':'Visit / encounter / admission number', 'PV1-20':'Financial class (Medicare, private, DVA)',
+    'PV1-36':'Discharge disposition / separation mode', 'PV1-39':'Hospital / campus', 'PV1-44':'Admission date/time',
+    'PV1-45':'Discharge date/time',
+
+    'ORC-1':'Order action (NW new, RE result, CA cancel, SC status change)', 'ORC-2':"Placer order number (requester's request ID)",
+    'ORC-3':'Filler order number (lab accession / episode number)', 'ORC-4':'Placer group number (request form / episode)',
+    'ORC-5':'Order status', 'ORC-9':'Order date/time', 'ORC-10':'Entered by', 'ORC-12':'Requesting doctor (provider number and name)',
+    'ORC-13':'Requesting location', 'ORC-14':'Callback phone', 'ORC-17':'Requesting organisation / practice',
+    'OBR-2':"Placer order number (requester's request ID)", 'OBR-3':'Filler order number (lab accession / specimen number)',
+    'OBR-4':'Test / panel requested', 'OBR-4.1':'Test code', 'OBR-4.2':'Test name', 'OBR-4.3':'Coding system (LN LOINC, L local)',
+    'OBR-6':'Requested date/time', 'OBR-7':'Collection date/time', 'OBR-8':'Collection end (timed collections)',
+    'OBR-9':'Collection volume', 'OBR-10':'Collector', 'OBR-12':'Danger / infection risk code',
+    'OBR-13':'Clinical notes from the request', 'OBR-14':'Specimen received in lab', 'OBR-15':'Specimen type / source',
+    'OBR-16':'Requesting doctor (provider number and name)', 'OBR-17':'Requesting doctor phone',
+    'OBR-18':'Placer field 1 (often requester reference)', 'OBR-20':'Filler field 1 (lab-specific)',
+    'OBR-22':'Report date/time', 'OBR-24':'Lab department / discipline',
+    'OBR-25':'Report status (F final, P preliminary, C corrected, X cancelled)', 'OBR-27':'Timing / priority (S stat, R routine)',
+    'OBR-28':'Copy-to doctors', 'OBR-29':'Parent order (reflex / add-on tests)', 'OBR-31':'Reason for request / clinical indication',
+    'OBR-32':'Reporting pathologist / radiologist',
+    'OBX-1':'Line number', 'OBX-2':'Value type (NM numeric, ST/TX text, FT formatted, ED attachment)', 'OBX-3':'Test / analyte',
+    'OBX-3.1':'Analyte code', 'OBX-3.2':'Analyte name', 'OBX-3.3':'Coding system (LN LOINC)', 'OBX-4':'Sub-ID (groups related lines)',
+    'OBX-5':'Result value', 'OBX-6':'Units', 'OBX-7':'Reference range', 'OBX-8':'Abnormal flag (H high, L low, A abnormal, N normal)',
+    'OBX-11':'Result status (F final, P preliminary, C corrected)', 'OBX-13':'Access restriction / display hint',
+    'OBX-14':'Observation date/time', 'OBX-15':'Producing lab', 'OBX-16':'Performed / verified by', 'OBX-17':'Method',
+    'OBX-18':'Analyser / instrument ID', 'OBX-19':'Analysis date/time',
+    'NTE-2':'Comment source (L lab, P requester)', 'NTE-3':'Comment text',
+    'SPM-2':'Specimen ID', 'SPM-4':'Specimen type', 'SPM-17':'Collection date/time', 'SPM-18':'Received date/time',
+    'DG1-3':'Diagnosis code (e.g. ICD-10)', 'DG1-4':'Diagnosis description', 'DG1-5':'Diagnosis date',
+    'DG1-6':'Diagnosis type (A admitting, W working, F final)', 'DG1-16':'Diagnosing clinician',
+    'AL1-2':'Allergy type (DA drug, FA food)', 'AL1-3':'Allergen', 'AL1-4':'Severity', 'AL1-5':'Reaction',
+    'GT1-2':'Guarantor ID', 'GT1-3':'Guarantor name', 'GT1-5':'Guarantor address', 'GT1-6':'Guarantor phone', 'GT1-11':'Relationship to patient',
+    'IN1-2':'Plan / fund ID', 'IN1-3':'Health fund ID', 'IN1-4':'Health fund name', 'IN1-8':'Group number',
+    'IN1-16':'Insured / member name', 'IN1-36':'Policy / membership number'
+  };
+  // Component-level common names by datatype, used when no path-specific name exists.
+  var COMMON_DT = {
+    XCN: { 1:'Provider number / doctor ID', 2:'Surname', 3:'First name', 4:'Middle name', 6:'Title (Dr)',
+           9:'Issuer of the ID (e.g. AUSHICPR = Medicare provider number)', 13:'ID type' },
+    XPN: { 1:'Surname', 2:'First name', 3:'Middle name', 5:'Title', 7:'Name type' },
+    XAD: { 1:'Street address', 3:'Suburb / city', 4:'State', 5:'Postcode', 6:'Country', 7:'Address type' },
+    CX:  { 1:'Identifier value', 4:'Issuer of the identifier', 5:'Identifier type' },
+    CE:  { 1:'Code', 2:'Description / display name', 3:'Coding system (LN LOINC, SCT SNOMED, L local)' },
+    CWE: { 1:'Code', 2:'Description / display name', 3:'Coding system (LN LOINC, SCT SNOMED, L local)', 9:'Original text' },
+    EI:  { 1:'Identifier value', 2:'Issuing system' },
+    HD:  { 1:'Name / ID', 2:'Universal ID', 3:'ID type' },
+    XTN: { 1:'Phone number', 2:'Use (PRN home, WPN work, NET email)', 4:'Email address' },
+    XON: { 1:'Organisation name', 3:'Organisation ID' },
+    TS:  { 1:'Date/time', 2:'Precision' },
+    PL:  { 1:'Ward / clinic', 2:'Room', 3:'Bed', 4:'Hospital / facility' }
+  };
+  COMMON_DT.CNE = COMMON_DT.CWE;
+
+  function commonName(canonicalPath, datatype, compNum) {
+    var key = String(canonicalPath || '').replace(/\[\d+\]/g, '');
+    if (COMMON[key]) return COMMON[key];
+    if (datatype && compNum && COMMON_DT[datatype] && COMMON_DT[datatype][compNum]) return COMMON_DT[datatype][compNum];
+    return '';
+  }
 
   var DEFAULT_DELIMS = { field: '|', comp: '^', rep: '~', esc: '\\', sub: '&' };
 
@@ -1681,7 +1816,8 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     return {
       kind: kind, path: path, canonicalPath: canonicalPath || path,
       label: label || '', value: value == null ? '' : value,
-      datatype: datatype || '', children: [], note: ''
+      datatype: datatype || '', children: [], note: '',
+      common: commonName(canonicalPath || path)
     };
   }
 
@@ -1900,6 +2036,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
       var nestedType = (DT_COMPONENT_TYPES[fType] && DT_COMPONENT_TYPES[fType][cNum]) || '';
       var cNode = node('component', cPath, cName, cv, nestedType, cCanonical);
       cNode.seg = segName;
+      if (!cNode.common) cNode.common = commonName(cCanonical, fType, cNum);
       if (fType === 'ED' && cNum === 5) cNode.opaquePayload = true;
       var subs = cv.split(d.sub);
       if (subs.length > 1) {
@@ -1924,7 +2061,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     return null;
   }
 
-  function fieldValue(seg, fieldNum, compNum) {
+  function fieldValue(seg, fieldNum, compNum, d) {
     var f = fieldNode(seg, fieldNum);
     if (!f) return '';
     if (!compNum) return f.value;
@@ -1936,8 +2073,9 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
       if (np === key || np.replace(/\[\d+\]/g, '') === key) return n.value;
       stack = stack.concat(n.children || []);
     }
-    if (compNum === 1 && f.value.indexOf('^') === -1) return f.value;
-    return '';
+    // No component tree (scalar datatype or unknown field): split the raw value with the message's own delimiter.
+    var comp = (d && d.comp) || DEFAULT_DELIMS.comp;
+    return f.value.split(comp)[compNum - 1] || '';
   }
 
 
@@ -1985,8 +2123,8 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
           segmentPath: seg.path,
           valuePath: valueNode.path,
           repetition: values.length > 1 ? ri + 1 : null,
-          observationId: fieldValue(seg, 3, 1) || fieldValue(seg, 3),
-          observationText: fieldValue(seg, 3, 2),
+          observationId: fieldValue(seg, 3, 1, res.delims) || fieldValue(seg, 3),
+          observationText: fieldValue(seg, 3, 2, res.delims),
           sourceApplication: info.sourceApplication,
           typeOfData: info.typeOfData,
           dataSubtype: info.dataSubtype,
@@ -1998,30 +2136,31 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     return out;
   }
 
-  function findValue(segments, segName, fieldNum, compNum) {
+  function findValue(segments, segName, fieldNum, compNum, d) {
     for (var i = 0; i < segments.length; i++) {
-      if (segments[i].seg === segName) return fieldValue(segments[i], fieldNum, compNum);
+      if (segments[i].seg === segName) return fieldValue(segments[i], fieldNum, compNum, d);
     }
     return '';
   }
 
   function buildMeta(segments, d) {
-    var code = findValue(segments, 'MSH', 9, 1);
-    var trig = findValue(segments, 'MSH', 9, 2);
-    var struct = findValue(segments, 'MSH', 9, 3);
-    var when = findValue(segments, 'MSH', 7, 1) || findValue(segments, 'MSH', 7);
+    function msh(fieldNum, compNum) { return findValue(segments, 'MSH', fieldNum, compNum, d); }
+    var code = msh(9, 1);
+    var trig = msh(9, 2);
+    var struct = msh(9, 3);
+    var when = msh(7, 1) || msh(7);
     return {
       messageType: [code, trig].filter(Boolean).join('^'), structure: struct,
-      trigger: trig ? (CODES['EVN-1'][trig] || '') : '',
-      version: findValue(segments, 'MSH', 12, 1) || findValue(segments, 'MSH', 12),
-      controlId: findValue(segments, 'MSH', 10),
-      sendingApp: findValue(segments, 'MSH', 3, 1) || findValue(segments, 'MSH', 3),
-      sendingFac: findValue(segments, 'MSH', 4, 1) || findValue(segments, 'MSH', 4),
-      receivingApp: findValue(segments, 'MSH', 5, 1) || findValue(segments, 'MSH', 5),
-      receivingFac: findValue(segments, 'MSH', 6, 1) || findValue(segments, 'MSH', 6),
+      trigger: trig ? (CODES['MSH-9.2'][trig] || '') : '',
+      version: msh(12, 1) || msh(12),
+      controlId: msh(10),
+      sendingApp: msh(3, 1) || msh(3),
+      sendingFac: msh(4, 1) || msh(4),
+      receivingApp: msh(5, 1) || msh(5),
+      receivingFac: msh(6, 1) || msh(6),
       timestamp: when, timestampHuman: when ? humanizeTimestamp(when) : '',
-      processingId: findValue(segments, 'MSH', 11, 1) || findValue(segments, 'MSH', 11),
-      profileId: findValue(segments, 'MSH', 21, 1) || findValue(segments, 'MSH', 21),
+      processingId: msh(11, 1) || msh(11),
+      profileId: msh(21, 1) || msh(21),
       delims: d
     };
   }
@@ -2129,6 +2268,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     SEG: SEG, DT: DT, SUBDT: SUBDT, CODES: CODES, SAMPLE: SAMPLE,
     VERSION_PROFILES: VERSION_PROFILES, versionProfile: versionProfile,
     pdfAttachments: pdfAttachments, edParts: edParts,
+    fieldNode: fieldNode, fieldValue: fieldValue, commonName: commonName, COMMON: COMMON, COMMON_DT: COMMON_DT,
     validTemporal: validTemporal, DEFAULT_DELIMS: DEFAULT_DELIMS
   };
 
@@ -2151,7 +2291,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
 
   var state = {
     res: null, messages: [], messageIndex: 0,
-    search: '', hideEmpty: true, decode: false, segFilter: null, summary: false,
+    search: '', hideEmpty: true, decode: false, commonNames: true, segFilter: null, summary: false, fileNote: null,
     autoExpand: true, expanded: Object.create(null), selected: null, rows: [],
     pdfAttachments: [], pdfPaths: Object.create(null), pdfUrl: null, pdfCurrent: null
   };
@@ -2276,9 +2416,10 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     if (!q) return false;
     var pathHit = node.path && node.path.toLowerCase().indexOf(q) !== -1;
     var labelHit = node.label && node.label.toLowerCase().indexOf(q) !== -1;
+    var commonHit = state.commonNames && node.common && node.common.toLowerCase().indexOf(q) !== -1;
     // Base64/Hex attachment payloads are opaque binary transport, not useful search text.
     var valueHit = !node.opaquePayload && !node.encapsulatedData && node.value && String(node.value).toLowerCase().indexOf(q) !== -1;
-    return pathHit || labelHit || valueHit;
+    return pathHit || labelHit || commonHit || valueHit;
   }
 
   function subtreeMatches(node, q) {
@@ -2344,6 +2485,19 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     }
     tree.appendChild(frag);
     updateCount(shown);
+    setRovingTab();
+  }
+
+  // Roving tabindex: exactly one row is reachable with Tab (the focused, selected or first row);
+  // arrow keys move between rows from there.
+  function setRovingTab(preferredUid) {
+    if (!state.rows.length) return;
+    var target = null;
+    function byUid(uid) { for (var i = 0; i < state.rows.length; i++) if (state.rows[i].uid === uid) return state.rows[i]; return null; }
+    if (preferredUid) target = byUid(preferredUid);
+    if (!target && state.selected) target = byUid(state.selected);
+    if (!target) target = state.rows[0];
+    state.rows.forEach(function (r) { r.el.tabIndex = r === target ? 0 : -1; });
   }
 
   function appendChildren(frag, parent, depth, q) {
@@ -2371,6 +2525,8 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     var row = document.createElement('div');
     row.className = 'row depth-' + depth + (node.kind === 'segment' ? ' seg-row' : '');
     row.style.setProperty('--seg-color', segColor(node.seg || node.path));
+    row.setAttribute('role', 'treeitem');
+    row.setAttribute('aria-level', String(depth));
     row.tabIndex = -1;
     row.dataset.uid = node.uid;
     if (state.selected === node.uid) row.className += ' sel';
@@ -2384,6 +2540,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
       (!state.hideEmpty || q || node.children.some(function (c) { return !isEmptyLeaf(c); }));
     if (hasKids) {
       tw.textContent = '\u25B6';
+      row.setAttribute('aria-expanded', String(isExpanded(node, q)));
       tw.setAttribute('aria-expanded', String(isExpanded(node, q)));
       tw.setAttribute('aria-label', (isExpanded(node, q) ? 'Collapse ' : 'Expand ') + node.path);
       tw.addEventListener('click', function (ev) {
@@ -2415,6 +2572,13 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
       dt.textContent = node.datatype;
       dt.title = (node.dynamicDatatype ? 'OBX-2 declares OBX-5 datatype: ' : 'HL7 datatype: ') + node.datatype;
       name.appendChild(dt);
+    }
+    if (state.commonNames && node.common && node.kind !== 'segment') {
+      var cm = document.createElement('span');
+      cm.className = 'common';
+      appendHighlighted(cm, node.common, q);
+      cm.title = 'Common name for ' + node.path;
+      name.appendChild(cm);
     }
     var rowPdf = state.pdfPaths[node.path];
     if (rowPdf) {
@@ -2516,14 +2680,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     return state.res.segments.filter(function (s) { return s.seg === name; });
   }
 
-  function getField(seg, number) {
-    if (!seg) return null;
-    var key = seg.seg + '-' + number;
-    for (var i = 0; i < seg.children.length; i++) {
-      if ((seg.children[i].canonicalPath || seg.children[i].path) === key) return seg.children[i];
-    }
-    return null;
-  }
+  function getField(seg, number) { return seg ? HL7.fieldNode(seg, number) : null; }
 
   function makeSummaryCard(title) {
     var card = document.createElement('section'); card.className = 'summary-card';
@@ -2536,7 +2693,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     if (!f || f.value === '') return false;
     var row = document.createElement('div'); row.className = 'summary-row';
     var p = document.createElement('div'); p.className = 'summary-path'; p.textContent = f.path;
-    var n = document.createElement('div'); n.className = 'summary-name'; n.textContent = f.label;
+    var n = document.createElement('div'); n.className = 'summary-name'; n.textContent = f.label + (state.commonNames && f.common ? ' \u00b7 ' + f.common : '');
     var v = document.createElement('div'); v.className = 'summary-value';
     v.textContent = state.decode && state.res ? HL7.decodeEscapes(f.value, state.res.delims) : f.value;
     row.appendChild(p); row.appendChild(n); row.appendChild(v); card.appendChild(row); return true;
@@ -2792,7 +2949,41 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     document.querySelectorAll('.row.sel').forEach(function (r) { r.classList.remove('sel'); });
     var el = document.querySelector('.row[data-uid="' + node.uid + '"]');
     if (el) el.classList.add('sel');
+    setRovingTab(node.uid);
     showInspector(node);
+  }
+
+  /* ---------- reveal a path from a warning or link ---------- */
+
+  function findNodeByPath(path) {
+    if (!state.res) return null;
+    var want = String(path || '');
+    var found = null, chain = null;
+    (function walk(nodes, ancestors) {
+      for (var i = 0; i < nodes.length && !found; i++) {
+        var n = nodes[i];
+        if (n.path === want) { found = n; chain = ancestors; return; }
+        if (n.children && n.children.length) walk(n.children, ancestors.concat([n]));
+      }
+    })(state.res.segments, []);
+    return found ? { node: found, ancestors: chain } : null;
+  }
+
+  function revealPath(path) {
+    if (!state.res) return;
+    var hit = findNodeByPath(path);
+    // Warnings may reference a compound path such as "MSH-1/2"; fall back to the first part, then the segment.
+    if (!hit) hit = findNodeByPath(String(path).split('/')[0]);
+    if (!hit) hit = findNodeByPath(String(path).split('-')[0]);
+    if (!hit) { toast('No row found for ' + path); return; }
+    state.summary = false; state.segFilter = null;
+    if (state.search) { state.search = ''; $('search').value = ''; }
+    hit.ancestors.forEach(function (a) { state.expanded[a.uid] = true; });
+    state.selected = hit.node.uid;
+    renderChips(); render();
+    var el = document.querySelector('.row[data-uid="' + hit.node.uid + '"]');
+    if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); }
+    showInspector(hit.node);
   }
 
   function restoreFocus(uid) {
@@ -2837,6 +3028,10 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     } else {
       decWrap.style.display = 'none';
     }
+
+    var commonWrap = $('inspCommonWrap');
+    if (node.common) { commonWrap.style.display = ''; setInspField('inspCommon', node.common); }
+    else commonWrap.style.display = 'none';
 
     setInspField('inspNote', node.note || '\u2014');
     renderHex($('inspHex'), raw);
@@ -2947,7 +3142,12 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     state.res.errors.forEach(function (e) { box.appendChild(notice(e, 'err')); });
     (state.res.warnings || []).forEach(function (w) {
       var d = document.createElement('div'); d.className = 'notice warn';
-      if (w.path) { var p=document.createElement('span'); p.className='notice-path'; p.textContent=w.path; d.appendChild(p); }
+      if (w.path) {
+        var p=document.createElement('button'); p.type='button'; p.className='notice-path'; p.textContent=w.path;
+        p.title='Show ' + w.path + ' in the tree';
+        p.addEventListener('click', (function (path) { return function () { revealPath(path); }; })(w.path));
+        d.appendChild(p);
+      }
       d.appendChild(document.createTextNode(w.message || String(w))); box.appendChild(d);
     });
     state.res.notes.forEach(function (n) { box.appendChild(notice(n, 'info')); });
@@ -3003,6 +3203,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     function strip(n) {
       var o = { path: n.path, canonicalPath: n.canonicalPath || n.path, name: n.label, value: n.value };
       if (n.datatype && n.datatype !== '*') o.datatype = n.datatype;
+      if (n.common) o.commonName = n.common;
       if (n.note) o.note = n.note;
       if (n.children.length) o.children = n.children.map(strip);
       return o;
@@ -3075,6 +3276,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     }
     var messages = HL7.parseMessages(raw);
     messages.forEach(function (r, i) { assignUids(r, i); });
+    if (state.fileNote) { messages.forEach(function (r) { r.notes = r.notes.concat([state.fileNote]); }); state.fileNote = null; }
     state.messages = messages;
     if (!messages.length) { toast('Nothing to parse'); return; }
     activateMessage(0);
@@ -3084,20 +3286,8 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
 
   /* ---------- compare mode ---------- */
 
-  function segmentField(seg, n) {
-    if (!seg) return null;
-    var key=seg.seg+'-'+n;
-    for (var i=0;i<seg.children.length;i++) if ((seg.children[i].canonicalPath||seg.children[i].path)===key) return seg.children[i];
-    return null;
-  }
+  var segmentField = getField;
   function segmentFieldValue(seg,n) { var f=segmentField(seg,n); return f?f.value:''; }
-  function segmentFieldComponentValue(seg,n,c) {
-    var f=segmentField(seg,n); if(!f) return '';
-    var target=seg.seg+'-'+n+'.'+c, stack=(f.children||[]).slice();
-    while(stack.length){ var x=stack.shift(), xp=String(x.canonicalPath||x.path); if(xp===target || xp.replace(/\[\d+\]/g,'')===target) return x.value; stack=stack.concat(x.children||[]); }
-    if(c===1 && f.value.indexOf('^')===-1) return f.value;
-    return '';
-  }
 
   function groupOrders(res) {
     var groups=[], current=null, pid=null, pv1=null, orc=null, patientIndex=0;
@@ -3286,13 +3476,7 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
 
   var pmsState = { results: [], index: 0, orderIndex: 0, currentRaw: '' };
 
-  var DIAG_CODES = {
-    AU:'Audiology', BG:'Blood Gases', BLB:'Blood Bank', CG:'Cytogenetics', CH:'Chemistry', CP:'Cytopathology', CT:'CAT Scan', CTH:'Cardiac Catheterization', CUS:'Cardiac Ultrasound',
-    EC:'Electrocardiac', EN:'Electroneuro', GE:'Genetics', HM:'Haematology', ICU:'ICU Monitoring', IMG:'Diagnostic Imaging', IMM:'Immunology', LAB:'Laboratory', MB:'Microbiology',
-    MCB:'Mycobacteriology', MYC:'Mycology', NMR:'Nuclear Magnetic Resonance', NMS:'Nuclear Medicine Scan', NRS:'Nursing Services Measures', OSL:'Outside Lab', OT:'Occupational Therapy',
-    OTH:'Other', OUS:'OB Ultrasound', PAR:'Parasitology', PAT:'Pathology', PF:'Pulmonary Function', PHR:'Pharmacy', PHY:'Physician', PT:'Physical Therapy', RAD:'Radiology', RC:'Respiratory Care',
-    RT:'Radiation Therapy', RUS:'Radiology Ultrasound', RX:'Radiograph', SP:'Surgical Pathology', SR:'Serology', TX:'Toxicology', URN:'Urinalysis', VR:'Virology', VUS:'Vascular Ultrasound', XRC:'Cineradiograph'
-  };
+  var DIAG_CODES = HL7.CODES['OBR-24'];
 
   function pmsSegments(res) {
     var d=res.delims||HL7.DEFAULT_DELIMS;
@@ -3795,12 +3979,70 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     if(!inspect) $('inspector').classList.remove('on');
   }
 
+  /* ---------- file reading with character-set detection ----------
+     HL7 files are frequently Latin-1 / Windows-1252 rather than UTF-8. Decode order:
+     BOM -> pure ASCII -> strict UTF-8 -> MSH-18 declared charset -> Windows-1252. */
+  var HL7_CHARSETS = {
+    'ASCII':'windows-1252', '8859/1':'iso-8859-1', '8859/2':'iso-8859-2', '8859/3':'iso-8859-3', '8859/4':'iso-8859-4',
+    '8859/5':'iso-8859-5', '8859/6':'iso-8859-6', '8859/7':'iso-8859-7', '8859/8':'iso-8859-8', '8859/9':'iso-8859-9',
+    '8859/15':'iso-8859-15', 'ISO-8859-1':'iso-8859-1', 'LATIN1':'iso-8859-1', 'CP1252':'windows-1252', 'WINDOWS-1252':'windows-1252',
+    'UNICODE UTF-8':'utf-8', 'UTF-8':'utf-8', 'UTF8':'utf-8', 'UNICODE':'utf-16le', 'UNICODE UTF-16':'utf-16le'
+  };
+
+  function bytesToLatin1(bytes) {
+    var out = '';
+    for (var i = 0; i < bytes.length; i += 8192) out += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(bytes.length, i + 8192)));
+    return out;
+  }
+
+  function declaredCharset(text) {
+    var m = /(?:^|[\r\n\x0b])MSH(.)(.{4})/.exec(text);
+    if (!m) return '';
+    var line = text.slice(m.index).replace(/^[\r\n\x0b]/, '').split(/\r|\n/)[0];
+    var parts = line.split(m[1]);
+    return String(parts[17] || '').split(m[2].charAt(0))[0].trim().toUpperCase();
+  }
+
+  function decodeHl7Bytes(buffer) {
+    var bytes = new Uint8Array(buffer);
+    function decode(label, fatal) { return new TextDecoder(label, { fatal: !!fatal }).decode(bytes); }
+    if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) return { text: decode('utf-8'), encoding: 'UTF-8', note: '' };
+    if (bytes[0] === 0xFF && bytes[1] === 0xFE) return { text: decode('utf-16le'), encoding: 'UTF-16', note: 'File decoded as UTF-16 (byte-order mark).' };
+    if (bytes[0] === 0xFE && bytes[1] === 0xFF) return { text: decode('utf-16be'), encoding: 'UTF-16', note: 'File decoded as UTF-16 (byte-order mark).' };
+    var ascii = true;
+    for (var i = 0; i < bytes.length; i++) if (bytes[i] > 0x7F) { ascii = false; break; }
+    var latin = bytesToLatin1(bytes);
+    if (ascii) return { text: latin, encoding: 'ASCII', note: '' };
+    var declared = declaredCharset(latin), mapped = HL7_CHARSETS[declared] || '';
+    try {
+      var utf8 = decode('utf-8', true);
+      return { text: utf8, encoding: 'UTF-8', note: mapped && mapped !== 'utf-8' ? 'File is valid UTF-8 and was decoded as UTF-8, although MSH-18 declares ' + declared + '.' : '' };
+    } catch (e) {}
+    var pick = mapped && mapped !== 'utf-8' ? mapped : 'windows-1252', text;
+    try { text = decode(pick); } catch (e2) { text = latin; pick = 'iso-8859-1'; }
+    return { text: text, encoding: pick,
+      note: mapped ? 'File is not valid UTF-8; decoded using the MSH-18 character set ' + declared + ' (' + pick + ').'
+                   : 'File is not valid UTF-8 and MSH-18 declares no character set; decoded as ' + pick + '. Check accented characters.' };
+  }
+
   function readFileInto(file, target, parseAfter) {
     if (!file) return;
     var reader=new FileReader();
-    reader.onload=function(){ $(target).value=String(reader.result||''); if(parseAfter) doParse(); };
     reader.onerror=function(){ toast('Could not read that file'); };
-    reader.readAsText(file);
+    if (typeof TextDecoder === 'undefined') {
+      reader.onload=function(){ $(target).value=String(reader.result||''); if(parseAfter) doParse(); };
+      reader.readAsText(file);
+      return;
+    }
+    reader.onload=function(){
+      var info;
+      try { info = decodeHl7Bytes(reader.result); }
+      catch (e) { toast('Could not decode that file'); return; }
+      $(target).value=info.text;
+      if (info.note) { if (target === 'raw' && parseAfter) state.fileNote = info.note; else toast(info.note); }
+      if(parseAfter) doParse();
+    };
+    reader.readAsArrayBuffer(file);
   }
 
   /* ---------- wire up ---------- */
@@ -3850,12 +4092,14 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     $('search').addEventListener('input', function (ev) { clearTimeout(searchTimer); var v=ev.target.value; searchTimer=setTimeout(function(){ state.search=v; render(); },120); });
     $('hideEmpty').addEventListener('change', function (ev) { state.hideEmpty=ev.target.checked; render(); });
     $('decodeEsc').addEventListener('change', function (ev) { state.decode=ev.target.checked; render(); });
+    $('commonNames').addEventListener('change', function (ev) { state.commonNames=ev.target.checked; render(); });
     $('expandAll').addEventListener('click', function () { state.summary=false; renderChips(); setAll(true); });
     $('collapseAll').addEventListener('click', function () { state.summary=false; renderChips(); setAll(false); });
     $('exportJson').addEventListener('click', downloadJson);
     $('copyJson').addEventListener('click', function () { copy(toJson(), 'Copied JSON to clipboard'); });
     $('inspClose').addEventListener('click', function () { $('inspector').classList.remove('on'); state.selected=null; document.querySelectorAll('.row.sel').forEach(function(r){r.classList.remove('sel');}); });
     $('tree').addEventListener('keydown', onKey);
+    $('tree').addEventListener('focusin', function (ev) { var row = ev.target.closest ? ev.target.closest('.row') : null; if (row && row.dataset.uid) setRovingTab(row.dataset.uid); });
 
     $('pdfClose').addEventListener('click', closePdfViewer);
     $('pdfOpenNew').addEventListener('click', openPdfNewTab);
@@ -3912,7 +4156,11 @@ mark.hit { background: var(--mark); color: var(--mark-text); }
     });
 
     document.addEventListener('keydown', function (ev) {
-      if ((ev.ctrlKey || ev.metaKey) && ev.key === 'f' && state.res && $('inspectPane').classList.contains('on')) { ev.preventDefault(); $('search').focus(); $('search').select(); }
+      // Never take Ctrl/Cmd+F away from someone typing in a field; the browser's own find is more useful there.
+      var typing = /^(TEXTAREA|INPUT|SELECT)$/.test((ev.target && ev.target.tagName) || '');
+      var inspecting = state.res && $('inspectPane').classList.contains('on');
+      if ((ev.ctrlKey || ev.metaKey) && ev.key === 'f' && !typing && inspecting) { ev.preventDefault(); $('search').focus(); $('search').select(); }
+      if (ev.key === '/' && !typing && !ev.ctrlKey && !ev.metaKey && !ev.altKey && $('inspectPane').classList.contains('on')) { ev.preventDefault(); $('search').focus(); $('search').select(); }
       if (ev.key === 'Escape' && $('pdfModal').classList.contains('on')) { closePdfViewer(); return; }
       if (ev.key === 'Escape' && $('inspector').classList.contains('on')) $('inspClose').click();
     });
